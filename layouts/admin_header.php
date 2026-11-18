@@ -88,10 +88,6 @@ if (session_status() === PHP_SESSION_NONE) {
           placeholder="<?= $searchPlaceholder ?>">
         <button type="submit" class="header__search-submit" aria-label="Tìm kiếm"></button>
       </form>
-      <div class="header__right">
-        <span id="clockTime" class="header__clock"></span>
-        <button class="header__notification" type="button" title="Thông báo"><i class="bx bx-bell"></i></button>
-      </div>
     </header>
 
     <!-- BẮT ĐẦU VÙNG NỘI DUNG CHÍNH -->

@@ -1,57 +1,5 @@
 <?php
-$success = false;
-$error   = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-  if (!isset($conn) || !($conn instanceof mysqli)) {
-    require_once __DIR__ . '/../../config/Database.php';
-    $conn = (new Database())->getConnection();
-  }
-
-  $guestName       = trim($_POST['name'] ?? '');
-  $guestPhone      = trim($_POST['phone'] ?? '');
-  $reservationDate = trim($_POST['date'] ?? '');
-  $reservationTime = trim($_POST['time'] ?? '');
-  $guestCount      = max(1, (int)($_POST['guests'] ?? 2));
-  $branchInput     = trim($_POST['branch'] ?? 'le-loi');
-  $branchMap       = [
-    'le-loi'    => 'Lê Lợi Q1',
-    'ben-thanh' => 'Bến Thành Q1',
-    'thao-dien' => 'Thảo Điền Thủ Đức',
-  ];
-  $branch     = $branchMap[$branchInput] ?? ($branchInput !== '' ? $branchInput : 'Lê Lợi Q1');
-  $guestEmail = trim($_POST['email'] ?? '');
-  $note       = trim($_POST['note'] ?? '');
-  $customerId = !empty($_SESSION['customer']['customerId']) ? (int)$_SESSION['customer']['customerId'] : null;
-
-  if ($guestName === '' || $guestPhone === '' || $reservationDate === '' || $reservationTime === '') {
-    $error = 'Vui lòng điền đầy đủ các thông tin bắt buộc (*).';
-  } else {
-    $stmt = $conn->prepare(
-      "INSERT INTO reservation
-       (customerId, guestName, guestPhone, guestEmail, reservationDate, reservationTime, guestCount, branch, status, note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', ?)"
-    );
-    $stmt->bind_param(
-      'isssssiss',
-      $customerId,
-      $guestName,
-      $guestPhone,
-      $guestEmail,
-      $reservationDate,
-      $reservationTime,
-      $guestCount,
-      $branch,
-      $note
-    );
-
-    if ($stmt->execute()) {
-      $success = true;
-    } else {
-      $error = 'Không thể lưu thông tin đặt bàn. Vui lòng thử lại.';
-    }
-  }
-}
+require_once __DIR__ . '/action.php';
 
 $pageTitle = 'Đặt Bàn — Nhóm 3';
 $activePage = 'datban';
@@ -85,62 +33,82 @@ include_once __DIR__ . '/../../layouts/client_header.php';
       </div>
     <?php endif; ?>
 
+    <?php
+    $formName   = $_POST['name']   ?? ($_SESSION['customer']['customerName']  ?? '');
+    $formPhone  = $_POST['phone']  ?? ($_SESSION['customer']['customerPhone'] ?? '');
+    $formDate   = $_POST['date']   ?? '';
+    $formTime   = $_POST['time']   ?? '19:00';
+    $formGuests = (string)($_POST['guests'] ?? '2');
+    $formBranch = (string)($_POST['branch'] ?? 'le-loi');
+    $formEmail  = $_POST['email']  ?? '';
+    $formNote   = $_POST['note']   ?? '';
+    $guestOptions = [
+      '1'  => '1 khách',
+      '2'  => '2 khách',
+      '3'  => '3 khách',
+      '4'  => '4 khách',
+      '5'  => '5 khách',
+      '6'  => '6 khách',
+      '8'  => '7 – 8 khách',
+      '10' => '9 – 10 khách',
+      '20' => 'Trên 10 khách (tiệc)',
+    ];
+    $branchOptions = [
+      'le-loi'    => 'Lê Lợi — Quận 1',
+      'ben-thanh' => 'Bến Thành — Quận 1',
+      'thao-dien' => 'Thảo Điền — TP. Thủ Đức',
+    ];
+    ?>
     <form action="index.php?page=datban" method="POST">
       <div class="form-grid">
         <div class="field">
           <label for="name">Họ và tên *</label>
-          <input type="text" id="name" name="name" placeholder="Nguyễn Văn A" required value="<?php if (!empty($_SESSION['customer'])) echo $_SESSION['customer']['customerName'] ?>" />
+          <input type="text" id="name" name="name" placeholder="Nguyễn Văn A" required value="<?= htmlspecialchars($formName, ENT_QUOTES, 'UTF-8') ?>" />
         </div>
 
         <div class="field">
           <label for="phone">Số điện thoại *</label>
-          <input type="tel" id="phone" name="phone" placeholder="0901 234 567" required value="<?php if (!empty($_SESSION['customer'])) echo $_SESSION['customer']['customerPhone'] ?>" />
+          <input type="tel" id="phone" name="phone" placeholder="0901 234 567" required value="<?= htmlspecialchars($formPhone, ENT_QUOTES, 'UTF-8') ?>" />
         </div>
 
         <div class="field">
           <label for="date">Ngày *</label>
-          <input type="date" id="date" name="date" required />
+          <input type="date" id="date" name="date" required value="<?= htmlspecialchars($formDate, ENT_QUOTES, 'UTF-8') ?>" />
         </div>
 
-        <div class=" field">
+        <div class="field">
           <label for="time">Giờ *</label>
-          <input type="time" id="time" name="time" value="19:00" required />
+          <input type="time" id="time" name="time" value="<?= htmlspecialchars($formTime, ENT_QUOTES, 'UTF-8') ?>" required />
         </div>
 
         <div class="field">
           <label for="guests">Số khách *</label>
           <select id="guests" name="guests" required>
-            <option value="1">1 khách</option>
-            <option value="2" selected>2 khách</option>
-            <option value="3">3 khách</option>
-            <option value="4">4 khách</option>
-            <option value="5">5 khách</option>
-            <option value="6">6 khách</option>
-            <option value="8">7 – 8 khách</option>
-            <option value="10">9 – 10 khách</option>
-            <option value="20">Trên 10 khách (tiệc)</option>
+            <?php foreach ($guestOptions as $val => $label): ?>
+              <option value="<?= $val ?>" <?= $formGuests === (string)$val ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
 
         <div class="field">
           <label for="branch">Chi nhánh</label>
           <select id="branch" name="branch">
-            <option value="le-loi" selected>Lê Lợi — Quận 1</option>
-            <option value="ben-thanh">Bến Thành — Quận 1</option>
-            <option value="thao-dien">Thảo Điền — TP. Thủ Đức</option>
+            <?php foreach ($branchOptions as $val => $label): ?>
+              <option value="<?= $val ?>" <?= $formBranch === $val ? 'selected' : '' ?>><?= $label ?></option>
+            <?php endforeach; ?>
           </select>
         </div>
 
         <div class="field field-full">
           <label for="email">Email</label>
-          <input type="email" id="email" name="email" placeholder="ban@example.com" />
+          <input type="email" id="email" name="email" placeholder="ban@example.com" value="<?= htmlspecialchars($formEmail, ENT_QUOTES, 'UTF-8') ?>" />
           <span class="field-note">Không bắt buộc — dùng để gửi xác nhận đặt bàn.</span>
         </div>
 
         <div class="field field-full">
           <label for="note">Ghi chú</label>
           <textarea id="note" name="note"
-            placeholder="Dị ứng thực phẩm, bàn gần cửa sổ, sinh nhật, xe lăn…"></textarea>
+            placeholder="Dị ứng thực phẩm, bàn gần cửa sổ, sinh nhật, xe lăn…"><?= htmlspecialchars($formNote, ENT_QUOTES, 'UTF-8') ?></textarea>
         </div>
 
         <div class="form-foot">

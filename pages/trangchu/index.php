@@ -68,7 +68,7 @@ include_once __DIR__ . '/../../layouts/client_header.php';
   </div>
 
   <div class="story-image">
-    <img src="img/promo3.jpg"
+    <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=NHwxMjA3fDA%3D"
       alt="Các món ăn đặc sắc của nhà hàng Nhóm 3" />
 
     <div class="quote">

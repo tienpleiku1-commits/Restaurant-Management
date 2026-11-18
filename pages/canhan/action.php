@@ -24,7 +24,8 @@ if (!$customer) {
 
 // Hủy đặt bàn của khách hàng
 if (!function_exists('customer_cancel_reservation')) {
-    function customer_cancel_reservation($conn, $reservationId, $customerId) {
+    function customer_cancel_reservation($conn, $reservationId, $customerId)
+    {
         $stmt = $conn->prepare(
             "UPDATE reservation
              SET status = 'CANCELLED'
@@ -57,3 +58,12 @@ $reservations = customer_get_reservations(
     $conn,
     $id
 );
+
+$activeVoucherCount = 0;
+if (!empty($vouchers)) {
+    foreach ($vouchers as $v) {
+        if ($v['status'] === 'UNUSED') {
+            $activeVoucherCount++;
+        }
+    }
+}

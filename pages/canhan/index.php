@@ -6,15 +6,6 @@ $activePage = 'canhan';
 include_once __DIR__ . '/../../layouts/client_head.php';
 include_once __DIR__ . '/../../layouts/client_header.php';
 
-// Tính số lượng voucher khả dụng từ danh sách $vouchers
-$activeVoucherCount = 0;
-if (!empty($vouchers)) {
-    foreach ($vouchers as $v) {
-        if ($v['status'] === 'UNUSED') {
-            $activeVoucherCount++;
-        }
-    }
-}
 ?>
 
 <!-- ===================== CỘT TRÁI + NỘI DUNG ===================== -->
