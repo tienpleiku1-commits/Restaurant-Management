@@ -17,97 +17,86 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             <?= htmlspecialchars($dbStatistics['month']['subtitle'] ?? 'Phân tích chi tiết về doanh thu, lượng khách và hiệu suất kinh doanh kết nối trực tiếp Cơ sở dữ liệu.') ?>
         </p>
     </div>
-    <div class="date-filter">
-        <button type="button" class="btn btn--outline" data-period="today" id="btnPeriodToday">
+        <div class="date-filter">
+        <a href="index.php?page=statistics&period=today" class="btn <?= $period === 'today' ? 'btn--primary' : 'btn--outline' ?>">
             <i class="bx bx-calendar"></i> Hôm nay
-        </button>
-        <button type="button" class="btn btn--outline" data-period="week" id="btnPeriodWeek">
+        </a>
+        <a href="index.php?page=statistics&period=week" class="btn <?= $period === 'week' ? 'btn--primary' : 'btn--outline' ?>">
             <i class="bx bx-calendar"></i> Tuần này
-        </button>
-        <button type="button" class="btn btn--primary" data-period="month" id="btnPeriodMonth">
+        </a>
+        <a href="index.php?page=statistics&period=month" class="btn <?= $period === 'month' ? 'btn--primary' : 'btn--outline' ?>">
             <i class="bx bx-calendar"></i> Tháng này
-        </button>
-        <div class="custom-date">
-            <input type="date" class="date-input" id="startDate" title="Từ ngày">
+        </a>
+        <form method="GET" action="index.php" class="custom-date" style="display:inline-flex; align-items:center; gap:6px;">
+            <input type="hidden" name="page" value="statistics">
+            <input type="date" class="date-input" name="from" value="<?= htmlspecialchars($from) ?>" title="Từ ngày" required>
             <span>-</span>
-            <input type="date" class="date-input" id="endDate" title="Đến ngày">
-            <button type="button" class="btn btn--icon" id="btnCustomFilter" title="Lọc theo khoảng ngày">
+            <input type="date" class="date-input" name="to" value="<?= htmlspecialchars($to) ?>" title="Đến ngày" required>
+            <button type="submit" class="btn btn--icon" title="Lọc theo khoảng ngày">
                 <i class="bx bx-filter-alt"></i>
             </button>
-        </div>
-        <button type="button" class="btn btn--ghost" id="btnExportPdf" title="Xuất báo cáo PDF">
-            <i class="bx bx-download"></i>
-        </button>
+        </form>
     </div>
 </div>
 
-<!-- KPI CARDS -->
 <div class="kpi-grid">
-    <!-- 1. Tổng doanh thu -->
+    <!-- 1. Doanh thu -->
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <div class="kpi-card__icon kpi-card__icon--blue">
-                <i class="bx bx-money"></i>
-            </div>
-            <span class="badge <?= ($initKpi['revenue']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>" id="kpiRevenueBadge">
-                <i class="bx <?= ($initKpi['revenue']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $initKpi['revenue']['change'] ?? 0 ?>%
+            <div class="kpi-card__icon kpi-card__icon--blue"><i class="bx bx-money"></i></div>
+            <span class="badge <?= ($kpi['revenue']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>">
+                <i class="bx <?= ($kpi['revenue']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $kpi['revenue']['change'] ?? 0 ?>%
             </span>
         </div>
         <div class="kpi-card__body">
             <p class="kpi-card__title">Tổng doanh thu</p>
-            <h3 class="kpi-card__value" id="kpiRevenueValue"><?= htmlspecialchars($initKpi['revenue']['value'] ?? '0đ') ?></h3>
-            <p class="kpi-card__compare" id="kpiRevenueCompare"><?= htmlspecialchars($initKpi['revenue']['compare'] ?? '') ?></p>
+            <h3 class="kpi-card__value"><?= htmlspecialchars($kpi['revenue']['value'] ?? '0đ') ?></h3>
+            <p class="kpi-card__compare"><?= htmlspecialchars($kpi['revenue']['compare'] ?? '') ?></p>
         </div>
     </div>
 
-    <!-- 2. Tổng đơn hàng -->
+    <!-- 2. Tổng đơn -->
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <div class="kpi-card__icon kpi-card__icon--green">
-                <i class="bx bx-receipt"></i>
-            </div>
-            <span class="badge <?= ($initKpi['orders']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>" id="kpiOrdersBadge">
-                <i class="bx <?= ($initKpi['orders']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $initKpi['orders']['change'] ?? 0 ?>%
+            <div class="kpi-card__icon kpi-card__icon--green"><i class="bx bx-receipt"></i></div>
+            <span class="badge <?= ($kpi['orders']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>">
+                <i class="bx <?= ($kpi['orders']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $kpi['orders']['change'] ?? 0 ?>%
             </span>
         </div>
         <div class="kpi-card__body">
             <p class="kpi-card__title">Tổng đơn hàng</p>
-            <h3 class="kpi-card__value" id="kpiOrdersValue"><?= htmlspecialchars($initKpi['orders']['value'] ?? '0') ?></h3>
-            <p class="kpi-card__compare" id="kpiOrdersCompare"><?= htmlspecialchars($initKpi['orders']['compare'] ?? '') ?></p>
+            <h3 class="kpi-card__value"><?= htmlspecialchars($kpi['orders']['value'] ?? '0') ?></h3>
+            <p class="kpi-card__compare"><?= htmlspecialchars($kpi['orders']['compare'] ?? '') ?></p>
         </div>
     </div>
 
     <!-- 3. Khách phục vụ -->
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <div class="kpi-card__icon kpi-card__icon--orange">
-                <i class="bx bx-group"></i>
-            </div>
-            <span class="badge <?= ($initKpi['guests']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>" id="kpiGuestsBadge">
-                <i class="bx <?= ($initKpi['guests']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $initKpi['guests']['change'] ?? 0 ?>%
+            <div class="kpi-card__icon kpi-card__icon--orange"><i class="bx bx-group"></i></div>
+            <span class="badge <?= ($kpi['guests']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>">
+                <i class="bx <?= ($kpi['guests']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $kpi['guests']['change'] ?? 0 ?>%
             </span>
         </div>
         <div class="kpi-card__body">
             <p class="kpi-card__title">Khách phục vụ</p>
-            <h3 class="kpi-card__value" id="kpiGuestsValue"><?= htmlspecialchars($initKpi['guests']['value'] ?? '0') ?></h3>
-            <p class="kpi-card__compare" id="kpiGuestsCompare"><?= htmlspecialchars($initKpi['guests']['compare'] ?? '') ?></p>
+            <h3 class="kpi-card__value"><?= htmlspecialchars($kpi['guests']['value'] ?? '0') ?></h3>
+            <p class="kpi-card__compare"><?= htmlspecialchars($kpi['guests']['compare'] ?? '') ?></p>
         </div>
     </div>
 
     <!-- 4. Giá trị đơn trung bình -->
     <div class="kpi-card">
         <div class="kpi-card__header">
-            <div class="kpi-card__icon kpi-card__icon--purple">
-                <i class="bx bx-wallet"></i>
-            </div>
-            <span class="badge <?= ($initKpi['avgOrder']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>" id="kpiAvgBadge">
-                <i class="bx <?= ($initKpi['avgOrder']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $initKpi['avgOrder']['change'] ?? 0 ?>%
+            <div class="kpi-card__icon kpi-card__icon--purple"><i class="bx bx-wallet"></i></div>
+            <span class="badge <?= ($kpi['avgOrder']['isUp'] ?? true) ? 'badge--success' : 'badge--danger' ?>">
+                <i class="bx <?= ($kpi['avgOrder']['isUp'] ?? true) ? 'bx-up-arrow-alt' : 'bx-down-arrow-alt' ?>"></i> <?= $kpi['avgOrder']['change'] ?? 0 ?>%
             </span>
         </div>
         <div class="kpi-card__body">
             <p class="kpi-card__title">Giá trị đơn trung bình</p>
-            <h3 class="kpi-card__value" id="kpiAvgValue"><?= htmlspecialchars($initKpi['avgOrder']['value'] ?? '0đ') ?></h3>
-            <p class="kpi-card__compare" id="kpiAvgCompare"><?= htmlspecialchars($initKpi['avgOrder']['compare'] ?? '') ?></p>
+            <h3 class="kpi-card__value"><?= htmlspecialchars($kpi['avgOrder']['value'] ?? '0đ') ?></h3>
+            <p class="kpi-card__compare"><?= htmlspecialchars($kpi['avgOrder']['compare'] ?? '') ?></p>
         </div>
     </div>
 </div>
@@ -165,371 +154,69 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             <h3 class="chart-title">Món ăn bán chạy nhất</h3>
             <a href="index.php?page=menu" class="chart-link">Xem tất cả menu</a>
         </div>
-        <div class="top-products" id="topProductsList">
-            <!-- Render các món bán chạy nhất -->
+                <div class="top-products" id="topProductsList">
+            <?php if (empty($topProducts)): ?>
+                <p style="text-align: center; color: #888; padding: 20px;">Chưa có món bán ra trong khoảng thời gian này.</p>
+            <?php else: ?>
+                <?php foreach ($topProducts as $tp): ?>
+                    <div class="product-item">
+                        <div class="product-rank"><?= $tp['rank'] ?></div>
+                        <div class="product-icon"><i class="bx <?= htmlspecialchars($tp['icon']) ?>"></i></div>
+                        <div class="product-info">
+                            <h4 class="product-name"><?= htmlspecialchars($tp['name']) ?></h4>
+                            <p class="product-cat"><?= htmlspecialchars($tp['category']) ?></p>
+                        </div>
+                        <div class="product-sales">
+                            <p class="product-sold"><?= htmlspecialchars($tp['sold']) ?></p>
+                            <p class="product-revenue"><?= htmlspecialchars($tp['revenue']) ?></p>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
     </div>
 </div>
 
 <!-- Khởi tạo Chart.js & Xử lý tương tác thống kê -->
 <script>
-    // ---------------------------------------------------------
-    // 1. DỮ LIỆU TỪ DATABASE PHP NẠP TRỰC TIẾP VÀO JAVASCRIPT
-    // ---------------------------------------------------------
-    const serverDbStats = <?= json_encode($dbStatistics, JSON_UNESCAPED_UNICODE) ?>;
-
-    const emptyPeriodFallback = {
-        subtitle: "Chưa có dữ liệu đơn hàng trong kỳ này.",
-        defaultChartGroup: "day",
-        fromDate: "<?= date('Y-m-01') ?>",
-        toDate: "<?= date('Y-m-d') ?>",
-        kpi: {
-            revenue: {
-                value: "0đ",
-                change: 0,
-                isUp: true,
-                compare: "Kỳ trước: 0đ"
-            },
-            orders: {
-                value: "0",
-                change: 0,
-                isUp: true,
-                compare: "Kỳ trước: 0 đơn"
-            },
-            guests: {
-                value: "0",
-                change: 0,
-                isUp: true,
-                compare: "Kỳ trước: 0 khách"
-            },
-            avgOrder: {
-                value: "0đ",
-                change: 0,
-                isUp: true,
-                compare: "Kỳ trước: 0đ"
-            }
-        },
-        revenueSeries: {
-            day: {
-                labels: [],
-                data: []
-            },
-            week: {
-                labels: [],
-                data: []
-            },
-            month: {
-                labels: [],
-                data: []
-            }
-        },
-        orderStatus: [0, 0, 0],
-        orderStatusCounts: [0, 0, 0],
-        topProducts: []
-    };
-
-    const statisticsData = {
-        today: (serverDbStats && serverDbStats.today) ? serverDbStats.today : emptyPeriodFallback,
-        week: (serverDbStats && serverDbStats.week) ? serverDbStats.week : emptyPeriodFallback,
-        month: (serverDbStats && serverDbStats.month) ? serverDbStats.month : emptyPeriodFallback
-    };
-
-    // ---------------------------------------------------------
-    // 2. KHỞI TẠO CÁC BIỂU ĐỒ CHART.JS TỪ DỮ LIỆU DATABASE
-    // ---------------------------------------------------------
-    Chart.defaults.font.family = "'Inter', sans-serif";
-    Chart.defaults.color = "#6B7280";
-    Chart.defaults.scale.grid.color = "#E8E8E8";
-
+    // Khởi tạo biểu đồ doanh thu bằng mảng dữ liệu do PHP cung cấp
     const ctxRev = document.getElementById("revenueChart").getContext("2d");
-    const gradientBlue = ctxRev.createLinearGradient(0, 0, 0, 400);
-    gradientBlue.addColorStop(0, "rgba(59, 130, 246, 0.5)");
-    gradientBlue.addColorStop(1, "rgba(59, 130, 246, 0)");
-
-    const revenueChart = new Chart(ctxRev, {
+    new Chart(ctxRev, {
         type: "line",
         data: {
-            labels: statisticsData.month.revenueSeries.day.labels,
+            labels: <?= json_encode($chartLabels) ?>,
             datasets: [{
                 label: "Doanh thu (Triệu VNĐ)",
-                data: statisticsData.month.revenueSeries.day.data,
+                data: <?= json_encode($chartData) ?>,
                 borderColor: "#3B82F6",
-                backgroundColor: gradientBlue,
-                borderWidth: 3,
-                pointBackgroundColor: "#fff",
-                pointBorderColor: "#3B82F6",
-                pointBorderWidth: 2,
-                pointRadius: 4,
-                pointHoverRadius: 6,
+                backgroundColor: "rgba(59, 130, 246, 0.1)",
+                borderWidth: 2,
                 fill: true,
-                tension: 0.4,
-            }, ],
+                tension: 0.3
+            }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: "#1A1A2E",
-                    padding: 12,
-                    titleFont: {
-                        size: 13,
-                        weight: "normal"
-                    },
-                    bodyFont: {
-                        size: 14,
-                        weight: "bold"
-                    },
-                    displayColors: false,
-                    callbacks: {
-                        label: function(context) {
-                            return context.parsed.y + " Triệu VNĐ";
-                        },
-                    },
-                },
-            },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    border: {
-                        display: false
-                    },
-                    ticks: {
-                        padding: 10
-                    },
-                },
-                x: {
-                    grid: {
-                        display: false
-                    },
-                    ticks: {
-                        padding: 10
-                    },
-                },
-            },
-        },
+            maintainAspectRatio: false
+        }
     });
 
+    // Khởi tạo biểu đồ tỷ lệ đơn hàng
     const ctxStatus = document.getElementById("orderStatusChart").getContext("2d");
-    const orderStatusChart = new Chart(ctxStatus, {
+    new Chart(ctxStatus, {
         type: "doughnut",
         data: {
             labels: ["Hoàn thành", "Đang xử lý", "Đã hủy"],
             datasets: [{
-                data: statisticsData.month.orderStatus,
-                backgroundColor: ["#22C55E", "#F59E0B", "#EF4444"],
-                borderWidth: 0,
-                hoverOffset: 4,
-            }, ],
+                data: <?= json_encode($orderStatus) ?>,
+                backgroundColor: ["#10B981", "#F59E0B", "#EF4444"]
+            }]
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
-            cutout: "75%",
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: "#1A1A2E",
-                    padding: 10,
-                    bodyFont: {
-                        size: 13
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            return " " + context.label + ": " + context.parsed + "%";
-                        },
-                    },
-                },
-            },
-        },
+            maintainAspectRatio: false
+        }
     });
-
-    // ---------------------------------------------------------
-    // 3. CÁC HÀM CẬP NHẬT GIAO DIỆN & ĐỒ THỊ ĐỘNG
-    // ---------------------------------------------------------
-    let currentPeriodKey = "month";
-    let currentPeriodData = statisticsData.month;
-
-    function updateKpiCard(valueId, badgeId, compareId, kpiObj) {
-        const valEl = document.getElementById(valueId);
-        const badgeEl = document.getElementById(badgeId);
-        const compareEl = document.getElementById(compareId);
-
-        if (valEl) valEl.textContent = kpiObj.value;
-        if (compareEl) compareEl.textContent = kpiObj.compare;
-        if (badgeEl) {
-            badgeEl.className = "badge " + (kpiObj.isUp ? "badge--success" : "badge--danger");
-            const arrowIcon = kpiObj.isUp ? "bx-up-arrow-alt" : "bx-down-arrow-alt";
-            badgeEl.innerHTML = `<i class="bx ${arrowIcon}"></i> ${kpiObj.change}%`;
-        }
-    }
-
-    function renderTopProducts(products, filterKeyword = "") {
-        const listEl = document.getElementById("topProductsList");
-        if (!listEl) return;
-
-        const kw = filterKeyword.trim().toLowerCase();
-        const filtered = kw ?
-            products.filter(p => p.name.toLowerCase().includes(kw) || p.category.toLowerCase().includes(kw)) :
-            products;
-
-        if (filtered.length === 0) {
-            listEl.innerHTML = `<p class="top-products-empty">Không có dữ liệu món ăn trong kỳ này.</p>`;
-            return;
-        }
-
-        listEl.innerHTML = filtered.map(item => `
-                <div class="top-product-item">
-                    <div class="product-rank">${item.rank}</div>
-                    <div class="product-img"><i class="bx ${item.icon}"></i></div>
-                    <div class="product-info">
-                        <h4>${item.name}</h4>
-                        <p>${item.category}</p>
-                    </div>
-                    <div class="product-stats">
-                        <div class="stat-sold">${item.sold}</div>
-                        <div class="stat-revenue">${item.revenue}</div>
-                    </div>
-                </div>
-            `).join("");
-    }
-
-    function updateRevenueChartByGroup(groupKey) {
-        const series = currentPeriodData.revenueSeries[groupKey] || currentPeriodData.revenueSeries.day;
-        revenueChart.data.labels = series.labels;
-        revenueChart.data.datasets[0].data = series.data;
-        revenueChart.update();
-    }
-
-    function applyStatisticsView(periodData, syncSelect = true) {
-        currentPeriodData = periodData;
-
-        const subEl = document.getElementById("periodSubtitle");
-        if (subEl && periodData.subtitle) {
-            subEl.textContent = periodData.subtitle;
-        }
-
-        updateKpiCard("kpiRevenueValue", "kpiRevenueBadge", "kpiRevenueCompare", periodData.kpi.revenue);
-        updateKpiCard("kpiOrdersValue", "kpiOrdersBadge", "kpiOrdersCompare", periodData.kpi.orders);
-        updateKpiCard("kpiGuestsValue", "kpiGuestsBadge", "kpiGuestsCompare", periodData.kpi.guests);
-        updateKpiCard("kpiAvgValue", "kpiAvgBadge", "kpiAvgCompare", periodData.kpi.avgOrder);
-
-        const selectEl = document.getElementById("revenueGroupSelect");
-        if (syncSelect && selectEl && periodData.defaultChartGroup) {
-            selectEl.value = periodData.defaultChartGroup;
-        }
-        const activeGroup = selectEl ? selectEl.value : "day";
-        updateRevenueChartByGroup(activeGroup);
-
-        const [completedPct, processingPct, cancelledPct] = periodData.orderStatus || [0, 0, 0];
-        const [cComp, cProc, cCanc] = periodData.orderStatusCounts || [0, 0, 0];
-        orderStatusChart.data.datasets[0].data = [completedPct, processingPct, cancelledPct];
-        orderStatusChart.update();
-
-        document.getElementById("legendCompleted").textContent = `Hoàn thành: ${cComp} đơn (${completedPct}%)`;
-        document.getElementById("legendProcessing").textContent = `Đang xử lý: ${cProc} đơn (${processingPct}%)`;
-        document.getElementById("legendCancelled").textContent = `Đã hủy: ${cCanc} đơn (${cancelledPct}%)`;
-
-        const searchInput = document.getElementById("headerGlobalSearch");
-        renderTopProducts(periodData.topProducts || [], searchInput ? searchInput.value : "");
-    }
-
-    function syncDateInputs(periodKey) {
-        const startInput = document.getElementById("startDate");
-        const endInput = document.getElementById("endDate");
-        if (!startInput || !endInput) return;
-
-        const pData = statisticsData[periodKey];
-        if (pData && pData.fromDate && pData.toDate) {
-            startInput.value = pData.fromDate;
-            endInput.value = pData.toDate;
-        }
-    }
-
-    function setActivePeriodButton(activePeriod) {
-        const buttons = document.querySelectorAll(".date-filter [data-period]");
-        buttons.forEach(btn => {
-            if (btn.getAttribute("data-period") === activePeriod) {
-                btn.classList.remove("btn--outline");
-                btn.classList.add("btn--primary");
-            } else {
-                btn.classList.remove("btn--primary");
-                btn.classList.add("btn--outline");
-            }
-        });
-    }
-
-    // ---------------------------------------------------------
-    // 4. GẮN SỰ KIỆN TƯƠNG TÁC CHO CÁC NÚT & BỘ LỌC (TRUY VẤN DB THẬT)
-    // ---------------------------------------------------------
-    document.querySelectorAll(".date-filter [data-period]").forEach(btn => {
-        btn.addEventListener("click", function() {
-            const period = this.getAttribute("data-period");
-            currentPeriodKey = period;
-            setActivePeriodButton(period);
-            syncDateInputs(period);
-            applyStatisticsView(statisticsData[period], true);
-        });
-    });
-
-    const revenueGroupSelect = document.getElementById("revenueGroupSelect");
-    if (revenueGroupSelect) {
-        revenueGroupSelect.addEventListener("change", function() {
-            updateRevenueChartByGroup(this.value);
-        });
-    }
-
-    const btnCustomFilter = document.getElementById("btnCustomFilter");
-    if (btnCustomFilter) {
-        btnCustomFilter.addEventListener("click", function() {
-            const startVal = document.getElementById("startDate").value;
-            const endVal = document.getElementById("endDate").value;
-
-            if (!startVal || !endVal) {
-                alert("Vui lòng chọn đầy đủ Từ ngày và Đến ngày để lọc thống kê!");
-                return;
-            }
-            if (new Date(startVal) > new Date(endVal)) {
-                alert("Ngày bắt đầu không được lớn hơn ngày kết thúc!");
-                return;
-            }
-
-            setActivePeriodButton("");
-            const sep = window.location.href.includes('?') ? '&' : '?';
-            const ajaxUrl = `${window.location.href}${sep}ajax_custom=1&from=${encodeURIComponent(startVal)}&to=${encodeURIComponent(endVal)}`;
-
-            fetch(ajaxUrl)
-                .then(res => res.json())
-                .then(res => {
-                    if (res && res.success && res.data) {
-                        applyStatisticsView(res.data, true);
-                    }
-                })
-                .catch(err => console.error("Lỗi tải thống kê tùy chỉnh:", err));
-        });
-    }
-
-    const headerSearchInput = document.getElementById("headerGlobalSearch");
-    if (headerSearchInput) {
-        headerSearchInput.addEventListener("input", function() {
-            renderTopProducts(currentPeriodData.topProducts, this.value);
-        });
-    }
-
-    const btnExportPdf = document.getElementById("btnExportPdf");
-    if (btnExportPdf) {
-        btnExportPdf.addEventListener("click", function() {
-            window.print();
-        });
-    }
-
-    syncDateInputs("month");
-    applyStatisticsView(statisticsData.month, true);
 </script>
 </body>
 

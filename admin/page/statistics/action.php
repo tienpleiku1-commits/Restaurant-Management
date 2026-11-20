@@ -1,5 +1,4 @@
 <?php
-
 global $conn;
 if (!isset($conn) || !($conn instanceof mysqli)) {
     require_once __DIR__ . '/../../../config/Database.php';
@@ -7,39 +6,41 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
 }
 require_once __DIR__ . '/function.php';
 
-// Lọc theo khoảng ngày tùy chọn (AJAX - trả về JSON rồi dừng)
-if (isset($_GET['ajax_custom'])) {
+// -------------------------------------------------------------
+// 1. XÁC ĐỊNH KỲ THỐNG KÊ TỪ THAM SỐ URL ($_GET) - KHÔNG DÙNG AJAX
+// -------------------------------------------------------------
+$period = $_GET['period'] ?? 'month';
+$today  = date('Y-m-d');
 
-    header('Content-Type: application/json; charset=utf-8');
+$from = $_GET['from'] ?? '';
+$to   = $_GET['to'] ?? '';
 
-    $from = $_GET['from'] ?? '';
-    $to   = $_GET['to'] ?? '';
-
-    if (
-        !stats_valid_date($from)
-        || !stats_valid_date($to)
-        || $from > $to
-    ) {
-
-        echo json_encode(
-            ['success' => false, 'message' => 'Khoảng ngày không hợp lệ.'],
-            JSON_UNESCAPED_UNICODE
-        );
-
-        exit;
-    }
-
-    echo json_encode(
-        [
-            'success' => true,
-            'data'    => stats_get_period($conn, $from, $to)
-        ],
-        JSON_UNESCAPED_UNICODE
-    );
-
-    exit;
+if (!empty($from) && !empty($to) && stats_valid_date($from) && stats_valid_date($to) && $from <= $to) {
+    $period = 'custom';
+} elseif ($period === 'today') {
+    $from = $today;
+    $to   = $today;
+} elseif ($period === 'week') {
+    $from = date('Y-m-d', strtotime('monday this week'));
+    $to   = $today;
+} else {
+    $period = 'month';
+    $from   = date('Y-m-01');
+    $to     = $today;
 }
 
-// Dữ liệu hiển thị
-$dbStatistics = stats_get_all($conn);
-$initKpi      = $dbStatistics['month']['kpi'] ?? null;
+// -------------------------------------------------------------
+// 2. TRUY VẤN VÀ TÍNH TOÁN SỐ LIỆU TỪ DATABASE CHO KỲ ĐƯỢC CHỌN
+// -------------------------------------------------------------
+$currentStats = stats_get_period($conn, $from, $to);
+
+$kpi               = $currentStats['kpi'];
+$topProducts       = $currentStats['topProducts'];
+$orderStatus       = $currentStats['orderStatus'];
+$orderStatusCounts = $currentStats['orderStatusCounts'];
+$revenueSeries     = $currentStats['revenueSeries'];
+$subtitle          = $currentStats['subtitle'];
+
+// Chuẩn bị nhãn và số liệu biểu đồ cho Chart.js vẽ
+$chartLabels = $revenueSeries['day']['labels'] ?? [];
+$chartData   = $revenueSeries['day']['data'] ?? [];
