@@ -15,9 +15,9 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         <p class="page-title__desc">Tạo và quản lý các mã giảm giá, chương trình khuyến mãi cho khách hàng kết nối trực tiếp Database.
         </p>
     </div>
-    <button class="btn btn--primary" id="btnAddVoucher" type="button">
-        <i class="bx bx-plus"></i> Tạo Voucher mới
-    </button>
+    <a href="index.php?page=vouchers&action=create" class="btn btn--primary">
+    <i class="bx bx-plus"></i> Tạo Voucher mới
+</a>
 </div>
 
 <!-- THÔNG BÁO THAO TÁC DATABASE -->
@@ -68,36 +68,33 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 
 <!-- VOUCHERS CARD -->
 <div class="vouchers-card">
-    <!-- TOOLBAR -->
-    <div class="toolbar">
+    <form method="GET" action="index.php" class="toolbar">
+        <input type="hidden" name="page" value="vouchers">
         <div class="toolbar__left">
             <div class="toolbar__search">
                 <i class="bx bx-search"></i>
-                <input type="text" id="searchVoucherInput" placeholder="Tìm mã voucher, tên chương trình...">
+                <input type="text" name="search" value="<?= htmlspecialchars($_GET['search'] ?? '') ?>" placeholder="Tìm mã voucher, tên chương trình...">
             </div>
             <div class="toolbar__filter">
-                <select class="toolbar__select" id="filterDiscountType">
+                <select class="toolbar__select" name="type" onchange="this.form.submit()">
                     <option value="all">Tất cả loại</option>
-                    <option value="PERCENT">Giảm theo %</option>
-                    <option value="FIXED">Giảm tiền mặt</option>
+                    <option value="PERCENT" <?= ($_GET['type'] ?? '') === 'PERCENT' ? 'selected' : '' ?>>Giảm theo %</option>
+                    <option value="FIXED" <?= ($_GET['type'] ?? '') === 'FIXED' ? 'selected' : '' ?>>Giảm tiền mặt</option>
                 </select>
             </div>
             <div class="toolbar__filter">
-                <select class="toolbar__select" id="filterVoucherStatus">
+                <select class="toolbar__select" name="status" onchange="this.form.submit()">
                     <option value="all">Tất cả trạng thái</option>
-                    <option value="active">Đang hoạt động</option>
-                    <option value="disabled">Tạm ngưng</option>
-                    <option value="expired">Đã hết hạn</option>
+                    <option value="active" <?= ($_GET['status'] ?? '') === 'active' ? 'selected' : '' ?>>Đang hoạt động</option>
+                    <option value="disabled" <?= ($_GET['status'] ?? '') === 'disabled' ? 'selected' : '' ?>>Tạm ngưng</option>
                 </select>
             </div>
+            <button type="submit" class="btn btn--secondary" style="padding: 8px 16px;">Lọc</button>
+            <?php if (!empty($_GET['search']) || !empty($_GET['type']) || !empty($_GET['status'])): ?>
+                <a href="index.php?page=vouchers" class="btn btn--ghost" style="padding: 8px 12px;" title="Xóa bộ lọc">Bỏ lọc</a>
+            <?php endif; ?>
         </div>
-        <div class="toolbar__right">
-            <button class="toolbar__btn" id="btnExportVoucherCsv" type="button" title="Xuất file CSV">
-                <i class="bx bx-export"></i> Xuất dữ liệu
-            </button>
-        </div>
-    </div>
-
+    </form>
     <!-- TABLE -->
     <div class="table-wrapper">
         <table class="vouchers-table">
