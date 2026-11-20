@@ -7,72 +7,137 @@ if (!isset($conn) || !($conn instanceof mysqli)) {
 }
 require_once __DIR__ . '/function.php';
 
-// Các yêu cầu AJAX do giao diện gửi lên (trả về JSON rồi dừng)
-if (
-    $_SERVER['REQUEST_METHOD'] === 'POST'
-    && isset($_POST['action'])
-) {
+<?php
+global $conn;
+if (!isset($conn) || !($conn instanceof mysqli)) {
+    require_once __DIR__ . '/../../../config/Database.php';
+    $conn = (new Database())->getConnection();
+}
+require_once __DIR__ . '/function.php';
 
-    header('Content-Type: application/json; charset=utf-8');
+$message = '';
+$messageType = 'success';
 
-    // Đổi trạng thái đơn hàng
-    if ($_POST['action'] === 'update_status') {
+// -------------------------------------------------------------
+// 1. XỬ LÝ CẬP NHẬT TRẠNG THÁI (FORM POST TRUYỀN THỐNG - KHÔNG AJAX)
+// -------------------------------------------------------------
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_update_status'])) {
+    $orderId = (int)($_POST['orderId'] ?? 0);
+    $status  = trim($_POST['status'] ?? '');
+    
+    if ($orderId > 0 && orders_update_status($conn, $orderId, $status)) {
+        $statusName = orders_status_name($status);
+        $message = "Cập nhật thành công: Đơn hàng #DH-$orderId chuyển sang \"$statusName\"!";
+        $messageType = 'success';
+    } else {
+        $message = "Không thể cập nhật trạng thái đơn hàng!";
+        $messageType = 'danger';
+    }
+}
 
-        $orderId = orders_parse_code($_POST['orderId'] ?? '');
-        $status  = $_POST['status'] ?? '';
+// -------------------------------------------------------------
+// 2. LẤY TOÀN BỘ DANH SÁCH ĐƠN HÀNG TỪ DATABASE
+// -------------------------------------------------------------
+$allOrders = orders_get_all($conn);
 
-        $ok = orders_update_status($conn, $orderId, $status);
+// -------------------------------------------------------------
+// 3. TÍNH TOÁN CÁC THẺ THỐNG KÊ (STAT CARDS) & ĐẾM ĐƠN CHO TỪNG TAB
+// -------------------------------------------------------------
+$statTodayRevenue   = 0;
+$statTotalOrders    = 0;
+$statServingOrders  = 0;
+$statPendingPay     = 0;
+$statCompleted      = 0;
 
-        echo json_encode(
-            [
-                'success' => $ok,
-                'message' => $ok ? 'Đã cập nhật trạng thái đơn hàng.' : 'Không thể cập nhật trạng thái đơn hàng.'
-            ],
-            JSON_UNESCAPED_UNICODE
-        );
+$tabCounts = [
+    'all'         => count($allOrders),
+    'cooking'     => 0,
+    'serving'     => 0,
+    'pending_pay' => 0,
+    'paid'        => 0,
+    'cancelled'   => 0
+];
 
-        exit;
+foreach ($allOrders as $o) {
+    $st = $o['status']; // cooking, serving, pending_pay, paid, cancelled
+    if (isset($tabCounts[$st])) {
+        $tabCounts[$st]++;
     }
 
-    // Tạo đơn hàng mới
-    if ($_POST['action'] === 'create_order') {
-
-        $data = [
-            'orderType'     => $_POST['orderType'] ?? 'dinein',
-            'table'         => $_POST['table'] ?? '',
-            'customerName'  => $_POST['customerName'] ?? 'Khách lẻ',
-            'guests'        => $_POST['guests'] ?? 2,
-            'paymentMethod' => $_POST['paymentMethod'] ?? 'cash',
-            'voucherVal'    => $_POST['voucherVal'] ?? 0,
-            'dishes'        => json_decode($_POST['dishes'] ?? '[]', true)
-        ];
-
-        $result = orders_create($conn, $data);
-
-        if (is_array($result)) {
-
-            echo json_encode(
-                ['success' => true, 'order' => $result],
-                JSON_UNESCAPED_UNICODE
-            );
-
-        } else {
-
-            echo json_encode(
-                ['success' => false, 'message' => $result],
-                JSON_UNESCAPED_UNICODE
-            );
+    if ($o['period'] === 'today') {
+        $statTotalOrders++;
+        if ($st === 'paid') {
+            $statTodayRevenue += $o['total'];
         }
-
-        exit;
     }
+    if ($st === 'serving' || $st === 'cooking') {
+        $statServingOrders++;
+    }
+    if ($st === 'pending_pay') {
+        $statPendingPay++;
+    }
+    if ($st === 'paid') {
+        $statCompleted++;
+    }
+}
 
-    echo json_encode(
-        ['success' => false, 'message' => 'Yêu cầu không hợp lệ.'],
-        JSON_UNESCAPED_UNICODE
-    );
+// -------------------------------------------------------------
+// 4. BỘ LỌC VÀ TÌM KIẾM BẰNG THAM SỐ URL ($_GET)
+// -------------------------------------------------------------
+$statusFilter  = $_GET['status'] ?? 'all';
+$searchKw      = trim($_GET['search'] ?? '');
+$orderType     = $_GET['type'] ?? 'all';
+$paymentFilter = $_GET['payment'] ?? 'all';
+$dateFilter    = $_GET['period'] ?? 'all';
 
-    exit;
+// Lọc mảng đơn hàng bằng PHP thuần
+$filteredOrders = array_filter($allOrders, function($o) use ($statusFilter, $searchKw, $orderType, $paymentFilter, $dateFilter) {
+    // Lọc theo Tab trạng thái
+    if ($statusFilter !== 'all' && $o['status'] !== $statusFilter) {
+        return false;
+    }
+    // Lọc theo từ khóa tìm kiếm (mã đơn, tên khách, số bàn)
+    if ($searchKw !== '') {
+        $haystack = strtolower($o['id'] . ' ' . $o['customer'] . ' ' . $o['table']);
+        if (strpos($haystack, strtolower($searchKw)) === false) {
+            return false;
+        }
+    }
+    // Lọc theo hình thức (ăn tại bàn / mang về)
+    if ($orderType !== 'all' && $o['type'] !== $orderType) {
+        return false;
+    }
+    // Lọc theo phương thức thanh toán
+    if ($paymentFilter !== 'all' && $o['payment'] !== $paymentFilter) {
+        return false;
+    }
+    // Lọc theo thời gian (hôm nay, hôm qua, tuần này, tháng này)
+    if ($dateFilter !== 'all' && $o['period'] !== $dateFilter) {
+        return false;
+    }
+    return true;
+});
+
+// -------------------------------------------------------------
+// 5. PHÂN TRANG BẰNG PHP THUẦN (8 đơn / trang)
+// -------------------------------------------------------------
+$currentPage   = max(1, (int)($_GET['p'] ?? 1));
+$limit         = 8;
+$totalFiltered = count($filteredOrders);
+$totalPages    = max(1, ceil($totalFiltered / $limit));
+$ordersList    = array_slice($filteredOrders, ($currentPage - 1) * $limit, $limit);
+
+// -------------------------------------------------------------
+// 6. XEM CHI TIẾT ĐƠN HÀNG HOẶC IN HÓA ĐƠN QUA URL
+// -------------------------------------------------------------
+$viewOrder = null;
+if (!empty($_GET['view'])) {
+    $viewOrder = orders_get_one($conn, orders_parse_code($_GET['view']));
+}
+
+$printOrder = null;
+if (!empty($_GET['print'])) {
+    $printOrder = orders_get_one($conn, orders_parse_code($_GET['print']));
 }
 
 // Dữ liệu hiển thị
