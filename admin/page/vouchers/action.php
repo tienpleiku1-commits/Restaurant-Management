@@ -108,3 +108,24 @@ $totalUsedCount    = $voucherStats['totalUsedCount'];
 $expiredOrOff      = $voucherStats['expiredOrOff'];
 $currentVoucherUrl = 'index.php?page=vouchers';
 $querySep          = '&';
+
+// Nhận giá trị từ ô chọn để lọc
+$searchKw     = trim($_GET['search'] ?? '');
+$filterType   = strtoupper($_GET['type'] ?? 'ALL');
+$filterStatus = $_GET['status'] ?? 'all';
+
+// Nếu có chọn lọc thì PHP sẽ lọc danh sách
+if ($searchKw !== '' || $filterType !== 'ALL' || $filterStatus !== 'all') {
+    $vouchers = array_filter($vouchers, function($v) use ($searchKw, $filterType, $filterStatus) {
+        $promoTitle = $v['promotionTitle'] ?? '';
+        
+        $matchSearch = ($searchKw === '') 
+            || (stripos($v['voucherCode'], $searchKw) !== false) 
+            || (stripos($promoTitle, $searchKw) !== false);
+            
+        $matchType   = ($filterType === 'ALL') || (strtoupper($v['discountType']) === $filterType);
+        $matchStatus = ($filterStatus === 'all') || ($v['computedStatus'] === $filterStatus);
+
+        return $matchSearch && $matchType && $matchStatus;
+    });
+}

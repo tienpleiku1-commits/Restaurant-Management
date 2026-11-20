@@ -89,10 +89,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                     <option value="disabled" <?= ($_GET['status'] ?? '') === 'disabled' ? 'selected' : '' ?>>Tạm ngưng</option>
                 </select>
             </div>
-            <button type="submit" class="btn btn--secondary" style="padding: 8px 16px;">Lọc</button>
-            <?php if (!empty($_GET['search']) || !empty($_GET['type']) || !empty($_GET['status'])): ?>
-                <a href="index.php?page=vouchers" class="btn btn--ghost" style="padding: 8px 12px;" title="Xóa bộ lọc">Bỏ lọc</a>
-            <?php endif; ?>
         </div>
     </form>
     <!-- TABLE -->
@@ -174,10 +170,12 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                             <td>
                                 <div class="action-btns">
-                                    <button type="button" class="action-btn" title="Chỉnh sửa Voucher"
-                                        onclick='openEditVoucherModal(<?= htmlspecialchars(json_encode($v, JSON_UNESCAPED_UNICODE), ENT_QUOTES, "UTF-8") ?>)'>
+                                    <a href="index.php?page=vouchers&edit=<?= 
+                                    $v['voucherId'] ?>" class="action-btn" 
+                                    title="Chỉnh sửa Voucher">
                                         <i class="bx bx-edit-alt"></i>
-                                    </button>
+                                        </a>
+                                    
                                     <a href="<?= $currentVoucherUrl . $querySep ?>action=toggle&id=<?= $v['voucherId'] ?>"
                                         class="action-btn action-btn--warning"
                                         title="<?= $isActive ? 'Tạm ngưng Voucher' : 'Kích hoạt lại Voucher' ?>">
@@ -219,106 +217,99 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 </div>
 
 <!-- MODAL: THÊM / SỬA VOUCHER (Ghi trực tiếp xuống bảng voucher) -->
-<div class="modal-overlay" id="voucherModal">
+<?php
+// Kiểm tra nếu đang bấm Tạo mới hoặc Sửa
+$isEdit = !empty($_GET['edit']);
+$isCreate = (isset($_GET['action']) && $_GET['action'] === 'create');
+$showModal = $isEdit || $isCreate;
+
+$editItem = null;
+if ($isEdit) {
+    $editId = (int)$_GET['edit'];
+    foreach ($vouchers as $item) {
+        if ((int)$item['voucherId'] === $editId) {
+            $editItem = $item;
+            break;
+        }
+    }
+}
+?>
+
+<!-- MODAL: HIỆN/ẨN HOÀN TOÀN BẰNG PHP -->
+<div class="modal-overlay <?= $showModal ? 'active' : '' ?>" id="voucherModal" style="<?= $showModal ? 'display:flex;' : 'display:none;' ?>">
     <div class="modal">
         <div class="modal__header">
-            <h2 class="modal__title" id="voucherModalTitle">Tạo Voucher Mới</h2>
-            <button class="modal__close" id="btnCloseModal" type="button"><i class="bx bx-x"></i></button>
+            <h2 class="modal__title"><?= $isEdit ? 'Chỉnh sửa Voucher: ' . htmlspecialchars($editItem['voucherCode'] ?? '') : 'Tạo Voucher Mới' ?></h2>
+            <!-- Nút X đóng form bằng link PHP -->
+            <a href="index.php?page=vouchers" class="modal__close" style="text-decoration:none;"><i class="bx bx-x"></i></a>
         </div>
-        <form class="modal-form" id="voucherForm" action="<?= $currentVoucherUrl ?>" method="POST">
-            <input type="hidden" name="voucherId" id="formVoucherId" value="0">
+        <form class="modal-form" action="index.php?page=vouchers" method="POST">
+            <input type="hidden" name="voucherId" value="<?= (int)($editItem['voucherId'] ?? 0) ?>">
             <div class="modal__body">
-                <!-- General Info -->
-                <h3 class="modal-form__section-title">Thông tin cơ bản</h3>
                 <div class="modal-form__row">
                     <div class="modal-form__group">
                         <label class="modal-form__label">Mã Voucher (Code) <span>*</span></label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-barcode-reader"></i>
-                            <input type="text" name="voucherCode" id="formVoucherCode" class="modal-form__input modal-form__input--uppercase"
-                                placeholder="VD: WELCOME10, VIP20..." required>
-                        </div>
+                        <input type="text" name="voucherCode" class="modal-form__input modal-form__input--uppercase"
+                            value="<?= htmlspecialchars($editItem['voucherCode'] ?? '') ?>" required>
                     </div>
                     <div class="modal-form__group">
                         <label class="modal-form__label">Thuộc chương trình khuyến mãi</label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-gift"></i>
-                            <select name="promotionId" id="formPromotionId" class="modal-form__input">
-                                <option value="">-- Khuyến mãi chung --</option>
-                                <?php foreach ($promotions as $p): ?>
-                                    <option value="<?= $p['promotionId'] ?>"><?= htmlspecialchars($p['title']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
+                        <select name="promotionId" class="modal-form__input">
+                            <option value="">-- Khuyến mãi chung --</option>
+                            <?php foreach ($promotions as $p): ?>
+                                <option value="<?= $p['promotionId'] ?>" <?= (isset($editItem['promotionId']) && (int)$editItem['promotionId'] === (int)$p['promotionId']) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($p['title']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                 </div>
 
-                <!-- Discount Type -->
-                <h3 class="modal-form__section-title">Thiết lập giảm giá</h3>
                 <div class="modal-form__row">
                     <div class="modal-form__group">
                         <label class="modal-form__label">Loại giảm giá <span>*</span></label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-purchase-tag-alt"></i>
-                            <select name="discountType" class="modal-form__input" id="discountType" required>
-                                <option value="PERCENT">Giảm theo % (PERCENT)</option>
-                                <option value="FIXED">Giảm tiền mặt (FIXED)</option>
-                            </select>
-                        </div>
+                        <select name="discountType" class="modal-form__input" required>
+                            <option value="PERCENT" <?= ($editItem['discountType'] ?? '') === 'PERCENT' ? 'selected' : '' ?>>Giảm theo %</option>
+                            <option value="FIXED" <?= ($editItem['discountType'] ?? '') === 'FIXED' ? 'selected' : '' ?>>Giảm tiền mặt (VNĐ)</option>
+                        </select>
                     </div>
-                    <div class="modal-form__group" id="discountValueGroup">
-                        <label class="modal-form__label" id="discountLabel">Mức giảm (%) <span>*</span></label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-dollar-circle"></i>
-                            <input type="number" step="any" min="1" name="discountValue" id="formDiscountValue"
-                                class="modal-form__input" placeholder="VD: 15 hoặc 50000" required>
-                        </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Mức giảm <span>*</span></label>
+                        <input type="number" step="any" min="1" name="discountValue"
+                            value="<?= (float)($editItem['discountValue'] ?? '') ?>" class="modal-form__input" required>
                     </div>
                 </div>
 
                 <div class="modal-form__row">
                     <div class="modal-form__group">
                         <label class="modal-form__label">Đơn tối thiểu (VNĐ)</label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-up-arrow-circle"></i>
-                            <input type="number" min="0" name="minOrderValue" id="formMinOrderValue"
-                                class="modal-form__input" value="0" placeholder="0 = Không yêu cầu">
-                        </div>
+                        <input type="number" min="0" name="minOrderValue"
+                            value="<?= (float)($editItem['minOrderValue'] ?? 0) ?>" class="modal-form__input">
                     </div>
                     <div class="modal-form__group">
-                        <label class="modal-form__label">Số lượng giới hạn (Lượt dùng) <span>*</span></label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-group"></i>
-                            <input type="number" min="1" name="usageLimit" id="formUsageLimit"
-                                class="modal-form__input" value="100" required>
-                        </div>
+                        <label class="modal-form__label">Lượt dùng tối đa</label>
+                        <input type="number" min="1" name="usageLimit"
+                            value="<?= (int)($editItem['usageLimit'] ?? 100) ?>" class="modal-form__input" required>
                     </div>
                 </div>
 
-                <!-- Condition -->
-                <h3 class="modal-form__section-title">Thời hạn & Trạng thái</h3>
                 <div class="modal-form__row">
                     <div class="modal-form__group">
-                        <label class="modal-form__label">Ngày hết hạn (Expiry Date)</label>
-                        <div class="modal-form__input-wrapper">
-                            <i class="bx bx-calendar-event"></i>
-                            <input type="date" name="expiryDate" id="formExpiryDate" class="modal-form__input">
-                        </div>
+                        <label class="modal-form__label">Ngày hết hạn</label>
+                        <input type="date" name="expiryDate"
+                            value="<?= htmlspecialchars($editItem['expiryDate'] ?? '') ?>" class="modal-form__input">
                     </div>
-                    <div class="modal-form__group modal-form__group--end">
+                    <div class="modal-form__group">
                         <label class="modal-form__label">Trạng thái kích hoạt</label>
-                        <div class="toggle-group toggle-group--spaced">
-                            <label class="toggle">
-                                <input type="checkbox" name="isActive" id="formIsActive" value="1" checked>
-                                <span class="toggle__slider"></span>
-                            </label>
-                            <span class="toggle-group__text">Kích hoạt sử dụng ngay</span>
-                        </div>
+                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                            <input type="checkbox" name="isActive" value="1" <?= (!isset($editItem['isActive']) || (int)$editItem['isActive'] === 1) ? 'checked' : '' ?>>
+                            <span>Kích hoạt sử dụng ngay</span>
+                        </label>
                     </div>
                 </div>
             </div>
             <div class="modal__footer">
-                <button class="btn btn--ghost" id="btnCancel" type="button">Hủy bỏ</button>
+                <a href="index.php?page=vouchers" class="btn btn--ghost">Hủy bỏ</a>
                 <button class="btn btn--primary" type="submit" name="btn_save_voucher">
                     <i class="bx bx-save"></i> Lưu Voucher
                 </button>
@@ -326,163 +317,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         </form>
     </div>
 </div>
-
 <script>
-    // ---------------------------------------------------------
-    // 1. ĐÓNG / MỞ MODAL TẠO MỚI & CHỈNH SỬA VOUCHER
-    // ---------------------------------------------------------
-    const modal = document.getElementById('voucherModal');
-    const btnAdd = document.getElementById('btnAddVoucher');
-    const btnClose = document.getElementById('btnCloseModal');
-    const btnCancel = document.getElementById('btnCancel');
-    const modalTitle = document.getElementById('voucherModalTitle');
-    const discountTypeEl = document.getElementById('discountType');
-    const discountLabel = document.getElementById('discountLabel');
-
-    function updateDiscountLabel() {
-        if (discountTypeEl.value === 'PERCENT') {
-            discountLabel.innerHTML = 'Mức giảm (%) <span>*</span>';
-        } else {
-            discountLabel.innerHTML = 'Số tiền giảm (VNĐ) <span>*</span>';
-        }
-    }
-    discountTypeEl.addEventListener('change', updateDiscountLabel);
-
-    function openCreateModal() {
-        modalTitle.textContent = 'Tạo Voucher Mới';
-        document.getElementById('formVoucherId').value = '0';
-        document.getElementById('formVoucherCode').value = '';
-        document.getElementById('formPromotionId').value = '';
-        discountTypeEl.value = 'PERCENT';
-        document.getElementById('formDiscountValue').value = '';
-        document.getElementById('formMinOrderValue').value = '0';
-        document.getElementById('formUsageLimit').value = '100';
-        document.getElementById('formExpiryDate').value = '2026-12-31';
-        document.getElementById('formIsActive').checked = true;
-        updateDiscountLabel();
-
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function openEditVoucherModal(voucher) {
-        modalTitle.textContent = 'Chỉnh sửa Voucher: ' + voucher.voucherCode;
-        document.getElementById('formVoucherId').value = voucher.voucherId;
-        document.getElementById('formVoucherCode').value = voucher.voucherCode || '';
-        document.getElementById('formPromotionId').value = voucher.promotionId || '';
-        discountTypeEl.value = (voucher.discountType || 'PERCENT').toUpperCase();
-        document.getElementById('formDiscountValue').value = parseFloat(voucher.discountValue || 0);
-        document.getElementById('formMinOrderValue').value = parseFloat(voucher.minOrderValue || 0);
-        document.getElementById('formUsageLimit').value = parseInt(voucher.usageLimit || 100);
-        document.getElementById('formExpiryDate').value = voucher.expiryDate || '';
-        document.getElementById('formIsActive').checked = parseInt(voucher.isActive) === 1;
-        updateDiscountLabel();
-
-        modal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeModal() {
-        modal.classList.remove('active');
-        document.body.style.overflow = '';
-    }
-
-    btnAdd.addEventListener('click', openCreateModal);
-    btnClose.addEventListener('click', closeModal);
-    btnCancel.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-    });
-
-    // ---------------------------------------------------------
-    // 2. BỘ LỌC TÌM KIẾM, LOẠI GIẢM GIÁ & TRẠNG THÁI THỜI GIAN THỰC
-    // ---------------------------------------------------------
-    const searchInput = document.getElementById('searchVoucherInput');
-    const headerSearch = document.getElementById('headerGlobalSearch');
-    const filterType = document.getElementById('filterDiscountType');
-    const filterStatus = document.getElementById('filterVoucherStatus');
-    const voucherRows = document.querySelectorAll('#voucherTableBody .voucher-row');
-    const pageInfo = document.getElementById('voucherPaginationInfo');
-
-    function filterVoucherTable() {
-        const kw = searchInput.value.toLowerCase().trim();
-        const type = filterType.value;
-        const status = filterStatus.value;
-        let visible = 0;
-
-        voucherRows.forEach(row => {
-            const matchKw = !kw || row.dataset.code.includes(kw);
-            const matchType = (type === 'all') || (row.dataset.type === type);
-            const matchStatus = (status === 'all') || (row.dataset.status === status);
-
-            if (matchKw && matchType && matchStatus) {
-                row.style.display = '';
-                visible++;
-            } else {
-                row.style.display = 'none';
-            }
-        });
-
-        if (pageInfo) {
-            pageInfo.innerHTML = `Hiển thị <strong>${visible}</strong> trong tổng số <strong>${voucherRows.length}</strong> voucher từ Database`;
-        }
-    }
-
-    searchInput.addEventListener('input', filterVoucherTable);
-    filterType.addEventListener('change', filterVoucherTable);
-    filterStatus.addEventListener('change', filterVoucherTable);
-
-    if (headerSearch) {
-        headerSearch.addEventListener('input', function() {
-            searchInput.value = this.value;
-            filterVoucherTable();
-        });
-    }
-
-    // ---------------------------------------------------------
-    // 3. CHỌN TẤT CẢ & XUẤT DỮ LIỆU CSV
-    // ---------------------------------------------------------
-    const checkAll = document.getElementById('checkAll');
-    const rowChecks = document.querySelectorAll('.row-checkbox');
-    if (checkAll) {
-        checkAll.addEventListener('change', () => {
-            rowChecks.forEach(cb => cb.checked = checkAll.checked);
-        });
-    }
-
-    document.getElementById('btnExportVoucherCsv').addEventListener('click', function() {
-        let csv = "data:text/csv;charset=utf-8,\uFEFF";
-        csv += "Mã Voucher,Chương trình,Loại giảm,Điều kiện,Đã dùng,Hạn sử dụng,Trạng thái\n";
-
-        voucherRows.forEach(row => {
-            if (row.style.display === 'none') return;
-            const code = row.querySelector('.voucher-info__code')?.innerText.trim() || '';
-            const name = row.querySelector('.voucher-info__name')?.innerText.trim() || '';
-            const type = row.querySelector('.type-tag')?.innerText.trim() || '';
-            const cond = row.children[3]?.innerText.trim() || '';
-            const used = row.querySelector('.usage-bar__text')?.innerText.trim() || '';
-            const exp = row.querySelector('.voucher-date')?.innerText.trim() || '';
-            const st = row.querySelector('.status-badge')?.innerText.trim() || '';
-            csv += `"${code}","${name}","${type}","${cond}","${used}","${exp}","${st}"\n`;
-        });
-
-        const link = document.createElement('a');
-        link.setAttribute('href', encodeURI(csv));
-        link.setAttribute('download', `Danh_sach_voucher_${new Date().toISOString().slice(0, 10)}.csv`);
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-    });
-
-    // Đồng hồ trên thanh Header
-    function updateClock() {
-        const now = new Date();
-        const el = document.getElementById('clockTime');
-        if (el) el.textContent = now.toTimeString().slice(0, 8);
-    }
-    setInterval(updateClock, 1000);
-    updateClock();
-</script>
 
 <!-- KẾT THÚC VÙNG NỘI DUNG CHÍNH -->
 </main>
