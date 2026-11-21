@@ -696,6 +696,16 @@ table {
     color: var(--blue);
 }
 
+.role-badge--kitchen {
+    background: var(--orange-bg, #fff4e5);
+    color: var(--orange, #e8590c);
+}
+
+.role-badge--waiter {
+    background: var(--blue-bg);
+    color: var(--blue);
+}
+
 .role-badge--customer {
     background: var(--green-bg);
     color: var(--green);

@@ -21,9 +21,14 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         <p class="page-title__desc">Tạo và quản lý các mã giảm giá, chương trình khuyến mãi cho khách hàng kết nối trực tiếp Database.
         </p>
     </div>
-    <a href="index.php?page=vouchers&action=create" class="btn btn--primary">
-        <i class="bx bx-plus"></i> Tạo Voucher mới
-    </a>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+        <a href="index.php?page=vouchers&action=create_promo#promotionsSection" class="btn btn--ghost" style="border:1px solid #d0d5dd;">
+            <i class="bx bx-gift"></i> Tạo Khuyến mãi mới
+        </a>
+        <a href="index.php?page=vouchers&action=create" class="btn btn--primary">
+            <i class="bx bx-plus"></i> Tạo Voucher mới
+        </a>
+    </div>
 </div>
 
 <!-- THÔNG BÁO THAO TÁC DATABASE -->
@@ -323,3 +328,197 @@ if ($isEdit) {
         </form>
     </div>
 </div>
+
+<!-- ==========================================================================
+     QUẢN LÝ CHƯƠNG TRÌNH KHUYẾN MÃI (BẢNG promotion - CRUD CHUNG VỚI VOUCHER)
+     ========================================================================== -->
+<div class="vouchers-card" id="promotionsSection" style="margin-top: 28px;">
+    <div class="toolbar" style="justify-content: space-between; align-items: center;">
+        <div>
+            <h2 style="font-size: 1.05rem; font-weight: 700; margin: 0;">Chương trình khuyến mãi (<?= count($promotionsAdmin) ?>)</h2>
+            <p style="font-size: 0.82rem; color: #667085; margin: 4px 0 0;">Hiển thị trên trang Khuyến mãi khách hàng và liên kết với danh sách Voucher ở trên.</p>
+        </div>
+        <a href="index.php?page=vouchers&action=create_promo#promotionsSection" class="btn btn--primary">
+            <i class="bx bx-plus"></i> Thêm Khuyến mãi
+        </a>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="vouchers-table">
+            <thead>
+                <tr>
+                    <th>CHƯƠNG TRÌNH</th>
+                    <th>NHÃN (BADGE)</th>
+                    <th>ĐỐI TƯỢNG & THỜI HẠN</th>
+                    <th>VOUCHER GẮN KÈM</th>
+                    <th>TRẠNG THÁI</th>
+                    <th>HÀNH ĐỘNG</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($promotionsAdmin)): ?>
+                    <?php foreach ($promotionsAdmin as $promo): ?>
+                        <?php
+                        $promoActive = (int)$promo['isActive'] === 1;
+                        $imgPath = ltrim((string)($promo['imageURL'] ?? ''), '/');
+                        if (strpos($imgPath, 'public/asset/') === 0) {
+                            $imgPath = substr($imgPath, strlen('public/asset/'));
+                        }
+                        $promoThumb = $imgPath !== '' ? '../' . $imgPath : '';
+                        ?>
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:12px;">
+                                    <?php if ($promoThumb !== ''): ?>
+                                        <img src="<?= htmlspecialchars($promoThumb) ?>" alt="<?= htmlspecialchars($promo['title']) ?>"
+                                            style="width:52px; height:38px; object-fit:cover; border-radius:6px; border:1px solid #e5e7eb;">
+                                    <?php endif; ?>
+                                    <div class="voucher-info">
+                                        <div class="voucher-info__code" style="font-size:0.9rem;"><?= htmlspecialchars($promo['title']) ?></div>
+                                        <?php if (!empty($promo['description'])): ?>
+                                            <p class="voucher-info__name"><?= htmlspecialchars($promo['description']) ?></p>
+                                        <?php endif; ?>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="type-tag type-tag--percent"><?= htmlspecialchars($promo['badgeText'] ?: '—') ?></span>
+                            </td>
+                            <td>
+                                <div><?= htmlspecialchars($promo['targetAudience'] ?: 'Mọi khách hàng') ?></div>
+                                <div class="voucher-subtext"><?= htmlspecialchars($promo['expiryInfo'] ?: 'Không giới hạn') ?></div>
+                            </td>
+                            <td><strong><?= (int)$promo['voucherCount'] ?></strong> voucher</td>
+                            <td>
+                                <span class="status-badge <?= $promoActive ? 'status-badge--active' : 'status-badge--disabled' ?>">
+                                    <?= $promoActive ? 'Đang hiển thị' : 'Đang ẩn' ?>
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-btns">
+                                    <a href="index.php?page=vouchers&edit_promo=<?= (int)$promo['promotionId'] ?>#promotionsSection"
+                                        class="action-btn" title="Chỉnh sửa khuyến mãi">
+                                        <i class="bx bx-edit-alt"></i>
+                                    </a>
+                                    <a href="index.php?page=vouchers&action=toggle_promo&id=<?= (int)$promo['promotionId'] ?>#promotionsSection"
+                                        class="action-btn action-btn--warning"
+                                        title="<?= $promoActive ? 'Ẩn khuyến mãi' : 'Hiển thị khuyến mãi' ?>">
+                                        <i class="bx <?= $promoActive ? 'bx-pause-circle' : 'bx-play-circle' ?>"></i>
+                                    </a>
+                                    <a href="index.php?page=vouchers&action=delete_promo&id=<?= (int)$promo['promotionId'] ?>#promotionsSection"
+                                        class="action-btn action-btn--danger" title="Xóa khuyến mãi"
+                                        onclick="return confirm('Xóa chương trình khuyến mãi <?= htmlspecialchars(addslashes($promo['title'])) ?>? Các voucher gắn kèm sẽ chuyển về khuyến mãi chung.')">
+                                        <i class="bx bx-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else: ?>
+                    <tr>
+                        <td colspan="6" class="vouchers-table__empty">
+                            <i class="bx bx-gift"></i>
+                            Chưa có chương trình khuyến mãi nào.
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL: THÊM / SỬA CHƯƠNG TRÌNH KHUYẾN MÃI (PHP THUẦN) -->
+<?php
+$isEditPromo   = !empty($_GET['edit_promo']);
+$isCreatePromo = (isset($_GET['action']) && $_GET['action'] === 'create_promo');
+$showPromoModal = $isEditPromo || $isCreatePromo;
+$editPromoItem = null;
+if ($isEditPromo) {
+    $editPromoId = (int)$_GET['edit_promo'];
+    foreach ($promotionsAdmin as $pItem) {
+        if ((int)$pItem['promotionId'] === $editPromoId) {
+            $editPromoItem = $pItem;
+            break;
+        }
+    }
+}
+?>
+<div class="modal-overlay <?= $showPromoModal ? 'active' : '' ?>" id="promotionModal" style="<?= $showPromoModal ? 'display:flex;' : 'display:none;' ?>">
+    <div class="modal">
+        <div class="modal__header">
+            <h2 class="modal__title"><?= $isEditPromo ? 'Chỉnh sửa Khuyến mãi #' . (int)($editPromoItem['promotionId'] ?? 0) : 'Tạo Chương trình Khuyến mãi' ?></h2>
+            <a href="index.php?page=vouchers#promotionsSection" class="modal__close" style="text-decoration:none;"><i class="bx bx-x"></i></a>
+        </div>
+        <form class="modal-form" action="index.php?page=vouchers#promotionsSection" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="promotionId" value="<?= (int)($editPromoItem['promotionId'] ?? 0) ?>">
+            <input type="hidden" name="existingImageURL" value="<?= htmlspecialchars($editPromoItem['imageURL'] ?? '') ?>">
+            <div class="modal__body">
+                <div class="modal-form__row">
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Tiêu đề chương trình <span>*</span></label>
+                        <input type="text" name="title" class="modal-form__input"
+                            value="<?= htmlspecialchars($editPromoItem['title'] ?? '') ?>"
+                            placeholder="VD: Giảm 20% cuối tuần..." required maxlength="150">
+                    </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Nhãn nổi bật (Badge)</label>
+                        <input type="text" name="badgeText" class="modal-form__input"
+                            value="<?= htmlspecialchars($editPromoItem['badgeText'] ?? '') ?>"
+                            placeholder="VD: Giảm 20%, Hot..." maxlength="50">
+                    </div>
+                </div>
+
+                <div class="modal-form__row">
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Đối tượng áp dụng</label>
+                        <input type="text" name="targetAudience" class="modal-form__input"
+                            value="<?= htmlspecialchars($editPromoItem['targetAudience'] ?? '') ?>"
+                            placeholder="VD: Mọi khách hàng, Thành viên..." maxlength="100">
+                    </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Thông tin thời hạn</label>
+                        <input type="text" name="expiryInfo" class="modal-form__input"
+                            value="<?= htmlspecialchars($editPromoItem['expiryInfo'] ?? '') ?>"
+                            placeholder="VD: Hạn sử dụng: 31/12/2026" maxlength="100">
+                    </div>
+                </div>
+
+                <div class="modal-form__group" style="margin-bottom: 14px;">
+                    <label class="modal-form__label">Mô tả chi tiết</label>
+                    <textarea name="description" rows="3" class="modal-form__input"
+                        placeholder="Nội dung ưu đãi, điều kiện áp dụng..."><?= htmlspecialchars($editPromoItem['description'] ?? '') ?></textarea>
+                </div>
+
+                <div class="modal-form__row">
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Ảnh minh họa (JPG, PNG, WebP, GIF)</label>
+                        <input type="file" name="promoImage" accept="image/*" class="modal-form__input">
+                        <?php if (!empty($editPromoItem['imageURL'])): ?>
+                            <small style="color:#667085;">Ảnh hiện tại: <?= htmlspecialchars($editPromoItem['imageURL']) ?> (để trống nếu giữ nguyên)</small>
+                        <?php endif; ?>
+                    </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Trạng thái hiển thị</label>
+                        <label style="display:flex; align-items:center; gap:8px; margin-top:8px; cursor:pointer;">
+                            <input type="checkbox" name="promoIsActive" value="1" <?= (!isset($editPromoItem['isActive']) || (int)$editPromoItem['isActive'] === 1) ? 'checked' : '' ?>>
+                            <span>Hiển thị trên trang Khuyến mãi</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal__footer">
+                <a href="index.php?page=vouchers#promotionsSection" class="btn btn--ghost">Hủy bỏ</a>
+                <button class="btn btn--primary" type="submit" name="btn_save_promotion">
+                    <i class="bx bx-save"></i> Lưu Khuyến mãi
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+</main>
+</div>
+
+</body>
+
+</html>

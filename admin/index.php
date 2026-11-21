@@ -18,11 +18,7 @@ $page = $_GET['page'] ?? 'overview';
 
 // Xử lý đăng xuất
 if ($page === 'logout') {
-
-    $_SESSION = [];
-
-    session_destroy();
-
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
     header('Location: index.php?page=login');
     exit;
 }
@@ -69,6 +65,26 @@ if (!is_file($file)) {
     http_response_code(404);
 
     exit('Không tìm thấy');
+}
+
+// Kiểm tra phiên đăng nhập ADMIN (không dùng auth.php)
+if ($page !== 'login') {
+    $adminId = (int)($_SESSION['admin_id'] ?? 0);
+    $validAdmin = null;
+    if ($adminId > 0) {
+        $stmt = $conn->prepare("SELECT adminId, adminName FROM admin WHERE adminId = ? AND role = 'ADMIN' AND isDeleted = 0 LIMIT 1");
+        $stmt->bind_param('i', $adminId);
+        $stmt->execute();
+        $validAdmin = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+    }
+    if (!$validAdmin) {
+        unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role']);
+        header('Location: index.php?page=login');
+        exit;
+    }
+    $_SESSION['admin_name'] = $validAdmin['adminName'];
+    $_SESSION['admin_role'] = 'ADMIN';
 }
 
 // Hiển thị trang

@@ -1,6 +1,18 @@
 <?php
 
-// Thêm quản trị viên hoặc khách hàng
+// Vai trò nội bộ: nhãn hiển thị <-> mã lưu trong bảng admin
+function user_staff_roles()
+{
+    return ['Quản trị' => 'ADMIN', 'Bếp' => 'KITCHEN', 'Phục vụ' => 'WAITER'];
+}
+
+function user_role_label($code)
+{
+    $flip = array_flip(user_staff_roles());
+    return $flip[strtoupper((string)$code)] ?? 'Quản trị';
+}
+
+// Thêm quản trị viên, nhân viên hoặc khách hàng
 function user_add($conn, $data)
 {
     $name = trim($data['fullname'] ?? '');
@@ -18,16 +30,18 @@ function user_add($conn, $data)
     // Giữ cách mã hóa mật khẩu hiện tại để tương thích dữ liệu project
     $hash = md5($password);
 
-    if ($role === 'Quản trị') {
+    $staffRoles = user_staff_roles();
+    if (isset($staffRoles[$role])) {
         $username = trim($data['username'] ?? '');
         if ($username === '') {
             return ['success' => false, 'message' => 'Vui lòng nhập tên đăng nhập.'];
         }
+        $roleCode = $staffRoles[$role];
         $stmt = $conn->prepare(
-            'INSERT INTO admin(username, passwordHash, adminName, adminPhone)
-             VALUES(?, ?, ?, ?)'
+            'INSERT INTO admin(username, passwordHash, adminName, adminPhone, role)
+             VALUES(?, ?, ?, ?, ?)'
         );
-        $stmt->bind_param('ssss', $username, $hash, $name, $phone);
+        $stmt->bind_param('sssss', $username, $hash, $name, $phone, $roleCode);
     } else {
         $email = trim($data['email'] ?? '');
         $stmt = $conn->prepare(
@@ -58,10 +72,19 @@ function user_update($conn, $data)
 
     if ($type === 'admin') {
         $username = trim($data['username'] ?? '');
+        $staffRoles = user_staff_roles();
+        $roleCode = $staffRoles[$data['role'] ?? ''] ?? null;
+        if ($roleCode === null) {
+            return false;
+        }
+        // Không cho tự hạ quyền chính tài khoản đang đăng nhập
+        if ($id === (int)($_SESSION['admin_id'] ?? 0) && $roleCode !== 'ADMIN') {
+            return false;
+        }
         $stmt = $conn->prepare(
-            'UPDATE admin SET adminName=?, adminPhone=?, username=? WHERE adminId=?'
+            'UPDATE admin SET adminName=?, adminPhone=?, username=?, role=? WHERE adminId=?'
         );
-        $stmt->bind_param('sssi', $name, $phone, $username, $id);
+        $stmt->bind_param('ssssi', $name, $phone, $username, $roleCode, $id);
     } elseif ($type === 'customer') {
         $email = trim($data['email'] ?? '');
         $stmt = $conn->prepare(
@@ -81,6 +104,9 @@ function user_toggle_status($conn, $type, $id)
     if (!in_array($type, ['admin', 'customer'], true) || $id <= 0) {
         return false;
     }
+    if ($type === 'admin' && $id === (int)($_SESSION['admin_id'] ?? 0)) {
+        return false;
+    }
 
     $table = $type === 'admin' ? 'admin' : 'customer';
     $key = $type === 'admin' ? 'adminId' : 'customerId';
@@ -97,6 +123,9 @@ function user_delete($conn, $type, $id)
     if (!in_array($type, ['admin', 'customer'], true) || $id <= 0) {
         return false;
     }
+    if ($type === 'admin' && $id === (int)($_SESSION['admin_id'] ?? 0)) {
+        return false;
+    }
 
     $table = $type === 'admin' ? 'admin' : 'customer';
     $key = $type === 'admin' ? 'adminId' : 'customerId';
@@ -109,24 +138,42 @@ function user_delete($conn, $type, $id)
 function user_get_all($conn, $search = '', $role = '', $status = '')
 {
     $users = [];
+    $staffRoles = user_staff_roles();
 
-    if ($role === '' || $role === 'Quản trị') {
+    if ($role === '' || isset($staffRoles[$role])) {
         $sql = "SELECT adminId id, CONCAT('AD',LPAD(adminId,4,'0')) code,
                 adminName name, username email, adminPhone phone,
-                'admin' type, 'Quản trị' role,
+                'admin' type, role roleCode,
                 IF(isDeleted=1,'locked','active') status, createdAt
                 FROM admin WHERE 1";
+        $types = '';
+        $binds = [];
+        if ($role !== '') {
+            $sql .= ' AND role = ?';
+            $types .= 's';
+            $binds[] = $staffRoles[$role];
+        }
         if ($search !== '') {
             $q = '%' . $search . '%';
             $sql .= ' AND (adminName LIKE ? OR username LIKE ? OR adminPhone LIKE ?)';
-            $stmt = $conn->prepare($sql . user_status_sql($status));
-            $stmt->bind_param('sss', $q, $q, $q);
+            $types .= 'sss';
+            array_push($binds, $q, $q, $q);
+        }
+        $sql .= user_status_sql($status);
+        if ($binds) {
+            $stmt = $conn->prepare($sql);
+            $stmt->bind_param($types, ...$binds);
             $stmt->execute();
             $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         } else {
-            $result = $conn->query($sql . user_status_sql($status));
+            $result = $conn->query($sql);
             $rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
         }
+        foreach ($rows as &$row) {
+            $row['role'] = user_role_label($row['roleCode']);
+            $row['roleClass'] = strtolower($row['roleCode']);
+        }
+        unset($row);
         $users = array_merge($users, $rows);
     }
 
@@ -147,6 +194,10 @@ function user_get_all($conn, $search = '', $role = '', $status = '')
             $result = $conn->query($sql . user_status_sql($status));
             $rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
         }
+        foreach ($rows as &$row) {
+            $row['roleClass'] = 'customer';
+        }
+        unset($row);
         $users = array_merge($users, $rows);
     }
 

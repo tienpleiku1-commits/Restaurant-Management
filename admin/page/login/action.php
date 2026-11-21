@@ -17,8 +17,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             session_start();
         }
         session_regenerate_id(true);
-        $_SESSION['admin_id'] = $user['adminId'];
+        $role = strtoupper(trim((string)($user['role'] ?? 'ADMIN')));
+
+        if ($role === 'KITCHEN') {
+            $_SESSION['kitchen_id']   = (int)$user['adminId'];
+            $_SESSION['kitchen_name'] = $user['adminName'];
+            $_SESSION['kitchen_role'] = 'KITCHEN';
+            header('Location: ../kitchen/index.php?page=orders');
+            exit;
+        }
+
+        if ($role === 'WAITER') {
+            $_SESSION['waiter_id']   = (int)$user['adminId'];
+            $_SESSION['waiter_name'] = $user['adminName'];
+            $_SESSION['waiter_role'] = 'WAITER';
+            header('Location: ../waiter/index.php?page=orders');
+            exit;
+        }
+
+        $_SESSION['admin_id']   = (int)$user['adminId'];
         $_SESSION['admin_name'] = $user['adminName'];
+        $_SESSION['admin_role'] = 'ADMIN';
 
         header('Location: index.php?page=overview');
         exit;

@@ -89,6 +89,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 <select class="toolbar__select" name="role" id="roleFilter" onchange="this.form.submit()">
                     <option value="">Tất cả vai trò</option>
                     <option value="Quản trị" <?= ($filterRole === 'Quản trị') ? 'selected' : '' ?>>Quản trị</option>
+                    <option value="Bếp" <?= ($filterRole === 'Bếp') ? 'selected' : '' ?>>Bếp</option>
+                    <option value="Phục vụ" <?= ($filterRole === 'Phục vụ') ? 'selected' : '' ?>>Phục vụ</option>
                     <option value="Khách hàng" <?= ($filterRole === 'Khách hàng') ? 'selected' : '' ?>>Khách hàng</option>
                 </select>
             </div>
@@ -173,7 +175,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
                             <td><?= htmlspecialchars($u['phone']) ?></td>
-                            <td><span class="role-badge role-badge--<?= $u['type'] ?>"><?= htmlspecialchars($u['role']) ?></span></td>
+                            <td><span class="role-badge role-badge--<?= htmlspecialchars($u['roleClass'] ?? $u['type']) ?>"><?= htmlspecialchars($u['role']) ?></span></td>
                             <td><span class="status-badge status-badge--<?= $u['status'] ?>"><?= $u['status'] === 'locked' ? 'Bị khóa' : 'Hoạt động' ?></span></td>
                             <td><?= htmlspecialchars($u['createdAt']) ?></td>
                             <td class="col-right">
@@ -259,6 +261,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <select name="role" id="modalRoleSelect" class="modal-form__input" required onchange="handleRoleChange(this.value)">
                                 <option value="Khách hàng" selected>Khách hàng</option>
                                 <option value="Quản trị">Quản trị</option>
+                                <option value="Bếp">Bếp</option>
+                                <option value="Phục vụ">Phục vụ</option>
                             </select>
                         </div>
                     </div>
@@ -350,6 +354,11 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <div class="modal-form__input-wrapper">
                             <i class="bx bx-shield-quarter"></i>
                             <input type="text" id="editUserRoleName" class="modal-form__input modal-form__input--readonly" readonly>
+                            <select name="role" id="editUserRoleSelect" class="modal-form__input is-hidden" disabled>
+                                <option value="Quản trị">Quản trị</option>
+                                <option value="Bếp">Bếp</option>
+                                <option value="Phục vụ">Phục vụ</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -474,9 +483,9 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
     function handleRoleChange(role) {
         const groupUsername = document.getElementById('groupUsername');
         const inputUsername = document.getElementById('inputUsername');
-        const isAdmin = role === 'Quản trị' || role === 'admin';
-        groupUsername.classList.toggle('is-hidden', !isAdmin);
-        inputUsername.required = isAdmin;
+        const isStaff = role !== 'Khách hàng';
+        groupUsername.classList.toggle('is-hidden', !isStaff);
+        inputUsername.required = isStaff;
     }
 
     // Kiểm tra khớp mật khẩu khi thêm mới
@@ -515,7 +524,14 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         document.getElementById('editUserId').value = u.id;
         document.getElementById('editUserType').value = u.type;
         document.getElementById('editUserCode').value = u.code;
-        document.getElementById('editUserRoleName').value = u.role;
+        const roleText = document.getElementById('editUserRoleName');
+        const roleSelect = document.getElementById('editUserRoleSelect');
+        roleText.value = u.role;
+        const isStaff = u.type === 'admin';
+        roleText.classList.toggle('is-hidden', isStaff);
+        roleSelect.classList.toggle('is-hidden', !isStaff);
+        roleSelect.disabled = !isStaff;
+        if (isStaff) roleSelect.value = u.role;
         document.getElementById('editFullname').value = u.name;
         document.getElementById('editPhone').value = (u.phone && u.phone !== 'Chưa có SĐT') ? u.phone : '';
         document.getElementById('editUsername').value = u.type === 'admin' ? u.email : '';

@@ -4,7 +4,7 @@
 function admin_login($conn, $username, $password)
 {
     $stmt = $conn->prepare(
-        'SELECT adminId, username, passwordHash, adminName
+        'SELECT adminId, username, passwordHash, adminName, role
          FROM admin
          WHERE username=? AND isDeleted=0
          LIMIT 1'
