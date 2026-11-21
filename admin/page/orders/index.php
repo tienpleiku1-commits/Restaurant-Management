@@ -1,6 +1,12 @@
 <?php
-if (!defined('ADMIN_ROUTER')) { http_response_code(403); exit('Không được phép truy cập trực tiếp.'); }
-if (empty($_SESSION['admin_id'])) { header('Location: index.php?page=login'); exit; }
+if (!defined('ADMIN_ROUTER')) {
+    http_response_code(403);
+    exit('Không được phép truy cập trực tiếp.');
+}
+if (empty($_SESSION['admin_id'])) {
+    header('Location: index.php?page=login');
+    exit;
+}
 require_once __DIR__ . '/action.php';
 
 $pageTitle  = 'Quản lý đơn hàng - Restaurant Management System';
@@ -83,7 +89,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 
 <!-- ORDERS DATA CARD -->
 <div class="orders-card">
-      <!-- TABS LỌC TRẠNG THÁI BẰNG PHP -->
+    <!-- TABS LỌC TRẠNG THÁI BẰNG PHP -->
     <div class="orders-tabs">
         <a href="index.php?page=orders&status=all" class="orders-tab <?= $statusFilter === 'all' ? 'active' : '' ?>">
             <i class="bx bx-list-ul"></i> Tất cả đơn
@@ -111,7 +117,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         </a>
     </div>
 
-      <!-- TOOLBAR LỌC & TÌM KIẾM BẰNG PHP -->
+    <!-- TOOLBAR LỌC & TÌM KIẾM BẰNG PHP -->
     <form method="GET" action="index.php" class="orders-toolbar">
         <input type="hidden" name="page" value="orders">
         <?php if ($statusFilter !== 'all'): ?>
@@ -175,7 +181,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                     <th class="col-right">THAO TÁC</th>
                 </tr>
             </thead>
-                      <tbody id="ordersTableBody">
+            <tbody id="ordersTableBody">
                 <?php if (empty($ordersList)): ?>
                     <tr>
                         <td colspan="9" style="text-align: center; padding: 40px; color: #888;">
@@ -271,361 +277,361 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         </div>
     </div>
 
-<!-- ==========================================================================
+    <!-- ==========================================================================
          MODAL 1: CHI TIẾT ĐƠN HÀNG & IN BILL
          ========================================================================== -->
-<div class="modal" id="orderDetailModal">
-    <div class="modal__box modal__box--lg">
-        <div class="modal__header">
-            <div class="modal__title">
-                <i class="bx bx-receipt"></i>
-                <span>Chi tiết đơn hàng <strong id="modalOrderCode">#DH-1025</strong></span>
-            </div>
-            <button class="modal__close" id="btnCloseDetailModal" type="button">
-                <i class="bx bx-x"></i>
-            </button>
-        </div>
-
-        <div class="modal__body">
-            <!-- Thông tin tóm tắt -->
-            <div class="order-summary-grid">
-                <div>
-                    <p class="summary-item__label">Bàn / Địa điểm</p>
-                    <p class="summary-item__value" id="detailModalTable">Bàn 04 (Tầng 1)</p>
+    <div class="modal" id="orderDetailModal">
+        <div class="modal__box modal__box--lg">
+            <div class="modal__header">
+                <div class="modal__title">
+                    <i class="bx bx-receipt"></i>
+                    <span>Chi tiết đơn hàng <strong id="modalOrderCode">#DH-1025</strong></span>
                 </div>
-                <div>
-                    <p class="summary-item__label">Khách hàng</p>
-                    <p class="summary-item__value" id="detailModalCustomer">Nguyễn Hữu An (4 người)</p>
-                </div>
-                <div>
-                    <p class="summary-item__label">Thời gian vào</p>
-                    <p class="summary-item__value" id="detailModalTime">11:30 - 28/09/2026</p>
-                </div>
-                <div>
-                    <p class="summary-item__label">Đổi trạng thái đơn</p>
-                    <div id="detailModalStatusBadge">
-                        <!-- Select đổi trạng thái trực tiếp trong modal -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- Quy trình phục vụ (Timeline tương tác) -->
-            <div class="order-timeline" id="detailModalTimeline">
-                <!-- Render động & có thể nhấp để chuyển trạng thái -->
-            </div>
-
-            <!-- Danh sách món ăn trong đơn -->
-            <div class="detail-dishes-header">
-                <h3 class="detail-dishes-header__title">Danh sách món đã gọi (Nhấp vào trạng thái món để đổi)</h3>
-                <button class="btn btn--secondary btn--sm" id="btnQuickAddDish" type="button">
-                    <i class="bx bx-plus"></i> Gọi thêm món
+                <button class="modal__close" id="btnCloseDetailModal" type="button">
+                    <i class="bx bx-x"></i>
                 </button>
             </div>
 
-            <table class="detail-dishes-table">
-                <thead>
-                    <tr>
-                        <th>MÓN ĂN</th>
-                        <th class="col-center">SL</th>
-                        <th class="col-right">ĐƠN GIÁ</th>
-                        <th class="col-right">THÀNH TIỀN</th>
-                        <th class="col-center">BẾP / PHỤC VỤ</th>
-                    </tr>
-                </thead>
-                <tbody id="detailModalDishesBody">
-                    <!-- Render các món ăn -->
-                </tbody>
-            </table>
-
-            <!-- Tính toán hóa đơn -->
-            <div class="bill-calculation">
-                <div class="bill-row">
-                    <span>Tạm tính tiền món:</span>
-                    <span id="detailSubtotal">1,250,000đ</span>
-                </div>
-                <div class="bill-row">
-                    <span>Voucher giảm giá (<span id="detailVoucherCode">KM10</span>):</span>
-                    <span class="bill-discount-value" id="detailDiscount">-125,000đ</span>
-                </div>
-                <div class="bill-row bill-row--total">
-                    <span>TỔNG CỘNG THANH TOÁN:</span>
-                    <span id="detailTotal">1,215,000đ</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal__footer">
-            <button class="btn btn--ghost" id="btnCloseDetailModal2" type="button">Đóng</button>
-            <button class="btn btn--secondary" id="btnPrintReceiptBtn" type="button">
-                <i class="bx bx-printer"></i> In hóa đơn
-            </button>
-            <button class="btn btn--primary" id="btnPayOrderAction" type="button">
-                <i class="bx bx-credit-card"></i> Thanh toán đơn này
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ==========================================================================
-         MODAL 2: TẠO ĐƠN HÀNG MỚI (MINI POS NHÀ HÀNG)
-         ========================================================================== -->
-<div class="modal" id="newOrderModal">
-    <div class="modal__box modal__box--lg">
-        <div class="modal__header">
-            <div class="modal__title">
-                <i class="bx bx-plus-circle"></i>
-                <span>Tạo đơn hàng mới (POS Order)</span>
-            </div>
-            <button class="modal__close" id="btnCloseNewOrderModal" type="button">
-                <i class="bx bx-x"></i>
-            </button>
-        </div>
-
-        <div class="modal__body">
-            <div class="pos-layout">
-                <!-- Bên trái: Chọn món ăn -->
-                <div class="pos-menu">
-                    <div class="form-group">
-                        <label>Tìm kiếm món ăn:</label>
-                        <input type="text" class="form-control" id="searchMenuInput"
-                            placeholder="Nhập tên món, mã món..." />
+            <div class="modal__body">
+                <!-- Thông tin tóm tắt -->
+                <div class="order-summary-grid">
+                    <div>
+                        <p class="summary-item__label">Bàn / Địa điểm</p>
+                        <p class="summary-item__value" id="detailModalTable">Bàn 04 (Tầng 1)</p>
                     </div>
-
-                    <!-- Danh mục món -->
-                    <div class="pos-categories" id="posCategoryTabs">
-                        <button type="button" class="pos-cat-btn active" data-cat="all">Tất cả</button>
-                        <button type="button" class="pos-cat-btn" data-cat="beef">Thịt bò & Lẩu</button>
-                        <button type="button" class="pos-cat-btn" data-cat="seafood">Hải sản</button>
-                        <button type="button" class="pos-cat-btn" data-cat="appetizer">Khai vị</button>
-                        <button type="button" class="pos-cat-btn" data-cat="drink">Đồ uống</button>
+                    <div>
+                        <p class="summary-item__label">Khách hàng</p>
+                        <p class="summary-item__value" id="detailModalCustomer">Nguyễn Hữu An (4 người)</p>
                     </div>
-
-                    <!-- Lưới món ăn -->
-                    <div class="pos-dish-grid" id="posDishGrid">
-                        <!-- Render danh sách món -->
+                    <div>
+                        <p class="summary-item__label">Thời gian vào</p>
+                        <p class="summary-item__value" id="detailModalTime">11:30 - 28/09/2026</p>
+                    </div>
+                    <div>
+                        <p class="summary-item__label">Đổi trạng thái đơn</p>
+                        <div id="detailModalStatusBadge">
+                            <!-- Select đổi trạng thái trực tiếp trong modal -->
+                        </div>
                     </div>
                 </div>
 
-                <!-- Bên phải: Thông tin đơn & Món đã chọn -->
-                <div class="pos-order-panel">
-                    <div class="pos-form-row pos-form-row--even">
-                        <div class="form-group">
-                            <label>Hình thức gọi món <span>*</span></label>
-                            <select class="form-control" id="posOrderType">
-                                <option value="dinein">Ăn tại bàn</option>
-                                <option value="takeaway">Mang về</option>
-                                <option value="delivery">Giao hàng</option>
-                            </select>
-                        </div>
-                        <div class="form-group" id="posTableSelectGroup">
-                            <label>Chọn bàn <span>*</span></label>
-                            <select class="form-control" id="posTableSelect">
-                                <option value="Bàn 01">Bàn 01 (Tầng 1)</option>
-                                <option value="Bàn 02">Bàn 02 (Tầng 1)</option>
-                                <option value="Bàn 03">Bàn 03 (Tầng 1)</option>
-                                <option value="Bàn 06">Bàn 06 (Tầng 2)</option>
-                                <option value="Bàn 07">Bàn 07 (Tầng 2)</option>
-                                <option value="VIP 01">Bàn VIP 01</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="pos-form-row pos-form-row--wide">
-                        <div class="form-group">
-                            <label>Tên khách hàng</label>
-                            <input type="text" class="form-control" id="posCustomerName"
-                                placeholder="Khách vãng lai..." value="Khách lẻ" />
-                        </div>
-                        <div class="form-group">
-                            <label>Số lượng khách</label>
-                            <input type="number" class="form-control" id="posCustomerGuests" value="2" min="1" />
-                        </div>
-                    </div>
-
-                    <!-- Danh sách món đã chọn -->
-                    <div class="form-group">
-                        <label>Món đã chọn (<span id="posSelectedCount">0</span>):</label>
-                        <div class="pos-selected-dishes" id="posSelectedDishes">
-                            <p class="pos-empty-note">
-                                Chưa có món nào được chọn. Nhấp vào món bên trái để thêm!
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Voucher & Khuyến mãi -->
-                    <div class="pos-form-row pos-form-row--wide">
-                        <div class="form-group">
-                            <label>Voucher khuyến mãi</label>
-                            <select class="form-control" id="posVoucherSelect">
-                                <option value="0">Không áp dụng</option>
-                                <option value="10">GIAM10% - Giảm 10%</option>
-                                <option value="20">VIP20% - Tri ân VIP 20%</option>
-                                <option value="50000">TIENMAT50K - Giảm 50.000đ</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Phương thức TT</label>
-                            <select class="form-control" id="posPaymentMethod">
-                                <option value="cash">Tiền mặt</option>
-                                <option value="transfer">Chuyển khoản QR</option>
-                                <option value="card">Thẻ ngân hàng</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Tóm tắt thanh toán -->
-                    <div class="bill-calculation bill-calculation--compact">
-                        <div class="bill-row">
-                            <span>Tạm tính:</span>
-                            <span id="posSubtotal">0đ</span>
-                        </div>
-                        <div class="bill-row">
-                            <span>Giảm giá:</span>
-                            <span id="posDiscount" class="bill-discount-value">0đ</span>
-                        </div>
-                        <div class="bill-row bill-row--total bill-row--total-sm">
-                            <span>Tổng tiền:</span>
-                            <span id="posFinalTotal">0đ</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="modal__footer">
-            <button class="btn btn--ghost" id="btnCancelNewOrder" type="button">Hủy bỏ</button>
-            <button class="btn btn--primary" id="btnSubmitNewOrder" type="button">
-                <i class="bx bx-check"></i> Xác nhận & Gửi xuống bếp
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- ==========================================================================
-         MODAL 3: IN HÓA ĐƠN BÁN HÀNG (BILL PRINT PREVIEW)
-         ========================================================================== -->
-<div class="modal" id="printModal">
-    <div class="modal__box modal__box--sm">
-        <div class="modal__header">
-            <div class="modal__title">
-                <i class="bx bx-printer"></i>
-                <span>Xem trước hóa đơn thanh toán</span>
-            </div>
-            <button class="modal__close" id="btnClosePrintModal" type="button">
-                <i class="bx bx-x"></i>
-            </button>
-        </div>
-        <div class="modal__body modal__body--print">
-            <!-- Hóa đơn 80mm POS chuẩn -->
-            <div class="invoice-print" id="printInvoiceArea">
-                <div class="invoice-print__header">
-                    <h2>NHÀ HÀNG NHÓM 3</h2>
-                    <p>Số 123 Đường Lẩu Nướng, Q. Ninh Kiều, TP. Cần Thơ</p>
-                    <p>Hotline đặt bàn: 0987.654.321</p>
-                    <p class="invoice-print__subtitle">PHIẾU THANH TOÁN</p>
+                <!-- Quy trình phục vụ (Timeline tương tác) -->
+                <div class="order-timeline" id="detailModalTimeline">
+                    <!-- Render động & có thể nhấp để chuyển trạng thái -->
                 </div>
 
-                <div class="invoice-print__meta">
-                    <div>Mã hóa đơn: <strong id="printInvoiceCode">#DH-1025</strong></div>
-                    <div>Bàn: <strong id="printInvoiceTable">Bàn 04</strong> - Khách: <span
-                            id="printInvoiceCust">Nguyễn Hữu An</span></div>
-                    <div>Giờ vào: <span id="printInvoiceTimeIn">11:30 28/09/2026</span></div>
-                    <div>Thu ngân: <span id="printInvoiceServer">Quản trị viên</span></div>
+                <!-- Danh sách món ăn trong đơn -->
+                <div class="detail-dishes-header">
+                    <h3 class="detail-dishes-header__title">Danh sách món đã gọi (Nhấp vào trạng thái món để đổi)</h3>
+                    <button class="btn btn--secondary btn--sm" id="btnQuickAddDish" type="button">
+                        <i class="bx bx-plus"></i> Gọi thêm món
+                    </button>
                 </div>
 
-                <table class="invoice-print__items">
+                <table class="detail-dishes-table">
                     <thead>
                         <tr>
-                            <th>Tên món</th>
+                            <th>MÓN ĂN</th>
                             <th class="col-center">SL</th>
-                            <th class="col-right">Đ.Giá</th>
-                            <th class="col-right">T.Tiền</th>
+                            <th class="col-right">ĐƠN GIÁ</th>
+                            <th class="col-right">THÀNH TIỀN</th>
+                            <th class="col-center">BẾP / PHỤC VỤ</th>
                         </tr>
                     </thead>
-                    <tbody id="printInvoiceItemsBody">
-                        <!-- Items -->
+                    <tbody id="detailModalDishesBody">
+                        <!-- Render các món ăn -->
                     </tbody>
                 </table>
 
-                <div class="invoice-print__summary">
-                    <div class="invoice-print__row">
-                        <span>Tạm tính:</span>
-                        <span id="printInvoiceSubtotal">1,250,000đ</span>
+                <!-- Tính toán hóa đơn -->
+                <div class="bill-calculation">
+                    <div class="bill-row">
+                        <span>Tạm tính tiền món:</span>
+                        <span id="detailSubtotal">1,250,000đ</span>
                     </div>
-                    <div class="invoice-print__row">
-                        <span>Giảm giá (Voucher):</span>
-                        <span id="printInvoiceDiscount">-125,000đ</span>
+                    <div class="bill-row">
+                        <span>Voucher giảm giá (<span id="detailVoucherCode">KM10</span>):</span>
+                        <span class="bill-discount-value" id="detailDiscount">-125,000đ</span>
                     </div>
-                    <div class="invoice-print__row invoice-print__row--total">
-                        <span>TỔNG CỘNG:</span>
-                        <span id="printInvoiceTotal">1,215,000đ</span>
+                    <div class="bill-row bill-row--total">
+                        <span>TỔNG CỘNG THANH TOÁN:</span>
+                        <span id="detailTotal">1,215,000đ</span>
                     </div>
-                    <div class="invoice-print__row">
-                        <span>Hình thức TT:</span>
-                        <span id="printInvoicePaymentMethod">Chuyển khoản QR</span>
-                    </div>
-                </div>
-
-                <div class="invoice-print__footer">
-                    <p class="invoice-print__thanks">CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!</p>
-                    <p>Wifi: NhaHangNhom3 - Pass: 88888888</p>
-                    <p class="invoice-print__printed-at">In lúc: 28/09/2026 12:45</p>
                 </div>
             </div>
-        </div>
-        <div class="modal__footer">
-            <button class="btn btn--ghost" id="btnClosePrintModal2" type="button">Đóng</button>
-            <button class="btn btn--primary" id="btnExecutePrint" type="button">
-                <i class="bx bx-printer"></i> Xác nhận In Bill
-            </button>
+
+            <div class="modal__footer">
+                <button class="btn btn--ghost" id="btnCloseDetailModal2" type="button">Đóng</button>
+                <button class="btn btn--secondary" id="btnPrintReceiptBtn" type="button">
+                    <i class="bx bx-printer"></i> In hóa đơn
+                </button>
+                <button class="btn btn--primary" id="btnPayOrderAction" type="button">
+                    <i class="bx bx-credit-card"></i> Thanh toán đơn này
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- ==========================================================================
+    <!-- ==========================================================================
+         MODAL 2: TẠO ĐƠN HÀNG MỚI (MINI POS NHÀ HÀNG)
+         ========================================================================== -->
+    <div class="modal" id="newOrderModal">
+        <div class="modal__box modal__box--lg">
+            <div class="modal__header">
+                <div class="modal__title">
+                    <i class="bx bx-plus-circle"></i>
+                    <span>Tạo đơn hàng mới (POS Order)</span>
+                </div>
+                <button class="modal__close" id="btnCloseNewOrderModal" type="button">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+
+            <div class="modal__body">
+                <div class="pos-layout">
+                    <!-- Bên trái: Chọn món ăn -->
+                    <div class="pos-menu">
+                        <div class="form-group">
+                            <label>Tìm kiếm món ăn:</label>
+                            <input type="text" class="form-control" id="searchMenuInput"
+                                placeholder="Nhập tên món, mã món..." />
+                        </div>
+
+                        <!-- Danh mục món -->
+                        <div class="pos-categories" id="posCategoryTabs">
+                            <button type="button" class="pos-cat-btn active" data-cat="all">Tất cả</button>
+                            <button type="button" class="pos-cat-btn" data-cat="beef">Thịt bò & Lẩu</button>
+                            <button type="button" class="pos-cat-btn" data-cat="seafood">Hải sản</button>
+                            <button type="button" class="pos-cat-btn" data-cat="appetizer">Khai vị</button>
+                            <button type="button" class="pos-cat-btn" data-cat="drink">Đồ uống</button>
+                        </div>
+
+                        <!-- Lưới món ăn -->
+                        <div class="pos-dish-grid" id="posDishGrid">
+                            <!-- Render danh sách món -->
+                        </div>
+                    </div>
+
+                    <!-- Bên phải: Thông tin đơn & Món đã chọn -->
+                    <div class="pos-order-panel">
+                        <div class="pos-form-row pos-form-row--even">
+                            <div class="form-group">
+                                <label>Hình thức gọi món <span>*</span></label>
+                                <select class="form-control" id="posOrderType">
+                                    <option value="dinein">Ăn tại bàn</option>
+                                    <option value="takeaway">Mang về</option>
+                                    <option value="delivery">Giao hàng</option>
+                                </select>
+                            </div>
+                            <div class="form-group" id="posTableSelectGroup">
+                                <label>Chọn bàn <span>*</span></label>
+                                <select class="form-control" id="posTableSelect">
+                                    <option value="Bàn 01">Bàn 01 (Tầng 1)</option>
+                                    <option value="Bàn 02">Bàn 02 (Tầng 1)</option>
+                                    <option value="Bàn 03">Bàn 03 (Tầng 1)</option>
+                                    <option value="Bàn 06">Bàn 06 (Tầng 2)</option>
+                                    <option value="Bàn 07">Bàn 07 (Tầng 2)</option>
+                                    <option value="VIP 01">Bàn VIP 01</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="pos-form-row pos-form-row--wide">
+                            <div class="form-group">
+                                <label>Tên khách hàng</label>
+                                <input type="text" class="form-control" id="posCustomerName"
+                                    placeholder="Khách vãng lai..." value="Khách lẻ" />
+                            </div>
+                            <div class="form-group">
+                                <label>Số lượng khách</label>
+                                <input type="number" class="form-control" id="posCustomerGuests" value="2" min="1" />
+                            </div>
+                        </div>
+
+                        <!-- Danh sách món đã chọn -->
+                        <div class="form-group">
+                            <label>Món đã chọn (<span id="posSelectedCount">0</span>):</label>
+                            <div class="pos-selected-dishes" id="posSelectedDishes">
+                                <p class="pos-empty-note">
+                                    Chưa có món nào được chọn. Nhấp vào món bên trái để thêm!
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- Voucher & Khuyến mãi -->
+                        <div class="pos-form-row pos-form-row--wide">
+                            <div class="form-group">
+                                <label>Voucher khuyến mãi</label>
+                                <select class="form-control" id="posVoucherSelect">
+                                    <option value="0">Không áp dụng</option>
+                                    <option value="10">GIAM10% - Giảm 10%</option>
+                                    <option value="20">VIP20% - Tri ân VIP 20%</option>
+                                    <option value="50000">TIENMAT50K - Giảm 50.000đ</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Phương thức TT</label>
+                                <select class="form-control" id="posPaymentMethod">
+                                    <option value="cash">Tiền mặt</option>
+                                    <option value="transfer">Chuyển khoản QR</option>
+                                    <option value="card">Thẻ ngân hàng</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Tóm tắt thanh toán -->
+                        <div class="bill-calculation bill-calculation--compact">
+                            <div class="bill-row">
+                                <span>Tạm tính:</span>
+                                <span id="posSubtotal">0đ</span>
+                            </div>
+                            <div class="bill-row">
+                                <span>Giảm giá:</span>
+                                <span id="posDiscount" class="bill-discount-value">0đ</span>
+                            </div>
+                            <div class="bill-row bill-row--total bill-row--total-sm">
+                                <span>Tổng tiền:</span>
+                                <span id="posFinalTotal">0đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal__footer">
+                <button class="btn btn--ghost" id="btnCancelNewOrder" type="button">Hủy bỏ</button>
+                <button class="btn btn--primary" id="btnSubmitNewOrder" type="button">
+                    <i class="bx bx-check"></i> Xác nhận & Gửi xuống bếp
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         MODAL 3: IN HÓA ĐƠN BÁN HÀNG (BILL PRINT PREVIEW)
+         ========================================================================== -->
+    <div class="modal" id="printModal">
+        <div class="modal__box modal__box--sm">
+            <div class="modal__header">
+                <div class="modal__title">
+                    <i class="bx bx-printer"></i>
+                    <span>Xem trước hóa đơn thanh toán</span>
+                </div>
+                <button class="modal__close" id="btnClosePrintModal" type="button">
+                    <i class="bx bx-x"></i>
+                </button>
+            </div>
+            <div class="modal__body modal__body--print">
+                <!-- Hóa đơn 80mm POS chuẩn -->
+                <div class="invoice-print" id="printInvoiceArea">
+                    <div class="invoice-print__header">
+                        <h2>NHÀ HÀNG NHÓM 3</h2>
+                        <p>Số 123 Đường Lẩu Nướng, Q. Ninh Kiều, TP. Cần Thơ</p>
+                        <p>Hotline đặt bàn: 0987.654.321</p>
+                        <p class="invoice-print__subtitle">PHIẾU THANH TOÁN</p>
+                    </div>
+
+                    <div class="invoice-print__meta">
+                        <div>Mã hóa đơn: <strong id="printInvoiceCode">#DH-1025</strong></div>
+                        <div>Bàn: <strong id="printInvoiceTable">Bàn 04</strong> - Khách: <span
+                                id="printInvoiceCust">Nguyễn Hữu An</span></div>
+                        <div>Giờ vào: <span id="printInvoiceTimeIn">11:30 28/09/2026</span></div>
+                        <div>Thu ngân: <span id="printInvoiceServer">Quản trị viên</span></div>
+                    </div>
+
+                    <table class="invoice-print__items">
+                        <thead>
+                            <tr>
+                                <th>Tên món</th>
+                                <th class="col-center">SL</th>
+                                <th class="col-right">Đ.Giá</th>
+                                <th class="col-right">T.Tiền</th>
+                            </tr>
+                        </thead>
+                        <tbody id="printInvoiceItemsBody">
+                            <!-- Items -->
+                        </tbody>
+                    </table>
+
+                    <div class="invoice-print__summary">
+                        <div class="invoice-print__row">
+                            <span>Tạm tính:</span>
+                            <span id="printInvoiceSubtotal">1,250,000đ</span>
+                        </div>
+                        <div class="invoice-print__row">
+                            <span>Giảm giá (Voucher):</span>
+                            <span id="printInvoiceDiscount">-125,000đ</span>
+                        </div>
+                        <div class="invoice-print__row invoice-print__row--total">
+                            <span>TỔNG CỘNG:</span>
+                            <span id="printInvoiceTotal">1,215,000đ</span>
+                        </div>
+                        <div class="invoice-print__row">
+                            <span>Hình thức TT:</span>
+                            <span id="printInvoicePaymentMethod">Chuyển khoản QR</span>
+                        </div>
+                    </div>
+
+                    <div class="invoice-print__footer">
+                        <p class="invoice-print__thanks">CẢM ƠN QUÝ KHÁCH & HẸN GẶP LẠI!</p>
+                        <p>Wifi: NhaHangNhom3 - Pass: 88888888</p>
+                        <p class="invoice-print__printed-at">In lúc: 28/09/2026 12:45</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal__footer">
+                <button class="btn btn--ghost" id="btnClosePrintModal2" type="button">Đóng</button>
+                <button class="btn btn--primary" id="btnExecutePrint" type="button">
+                    <i class="bx bx-printer"></i> Xác nhận In Bill
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
          MODAL 4: HỦY ĐƠN HÀNG (CANCEL CONFIRMATION)
          ========================================================================== -->
-<div class="modal" id="cancelOrderModal">
-    <div class="modal__box modal__box--sm">
-        <div class="modal__header">
-            <div class="modal__title modal__title--danger">
-                <i class="bx bx-error-circle"></i>
-                <span>Xác nhận hủy đơn hàng</span>
+    <div class="modal" id="cancelOrderModal">
+        <div class="modal__box modal__box--sm">
+            <div class="modal__header">
+                <div class="modal__title modal__title--danger">
+                    <i class="bx bx-error-circle"></i>
+                    <span>Xác nhận hủy đơn hàng</span>
+                </div>
+                <button class="modal__close" id="btnCloseCancelModal" type="button">
+                    <i class="bx bx-x"></i>
+                </button>
             </div>
-            <button class="modal__close" id="btnCloseCancelModal" type="button">
-                <i class="bx bx-x"></i>
-            </button>
-        </div>
-        <div class="modal__body">
-            <p class="cancel-order-prompt">
-                Bạn có chắc chắn muốn hủy đơn hàng <strong id="cancelModalOrderCode">#DH-1025</strong> không?
-            </p>
-            <div class="form-group">
-                <label>Lý do hủy đơn <span>*</span></label>
-                <select class="form-control" id="cancelOrderReason">
-                    <option value="Khách đổi ý không dùng nữa">Khách đổi ý không dùng nữa</option>
-                    <option value="Hết nguyên liệu / Món ăn">Hết nguyên liệu / Món ăn</option>
-                    <option value="Khách đặt nhầm / Nhân viên nhập sai">Khách đặt nhầm / Nhân viên nhập sai
-                    </option>
-                    <option value="Sự cố bàn hoặc kỹ thuật">Sự cố bàn hoặc kỹ thuật</option>
-                    <option value="Lý do khác">Lý do khác</option>
-                </select>
+            <div class="modal__body">
+                <p class="cancel-order-prompt">
+                    Bạn có chắc chắn muốn hủy đơn hàng <strong id="cancelModalOrderCode">#DH-1025</strong> không?
+                </p>
+                <div class="form-group">
+                    <label>Lý do hủy đơn <span>*</span></label>
+                    <select class="form-control" id="cancelOrderReason">
+                        <option value="Khách đổi ý không dùng nữa">Khách đổi ý không dùng nữa</option>
+                        <option value="Hết nguyên liệu / Món ăn">Hết nguyên liệu / Món ăn</option>
+                        <option value="Khách đặt nhầm / Nhân viên nhập sai">Khách đặt nhầm / Nhân viên nhập sai
+                        </option>
+                        <option value="Sự cố bàn hoặc kỹ thuật">Sự cố bàn hoặc kỹ thuật</option>
+                        <option value="Lý do khác">Lý do khác</option>
+                    </select>
+                </div>
             </div>
-        </div>
-        <div class="modal__footer">
-            <button class="btn btn--ghost" id="btnAbortCancel" type="button">Quay lại</button>
-            <button class="btn btn--danger" id="btnConfirmCancelOrder" type="button">
-                <i class="bx bx-trash"></i> Xác nhận Hủy đơn
-            </button>
+            <div class="modal__footer">
+                <button class="btn btn--ghost" id="btnAbortCancel" type="button">Quay lại</button>
+                <button class="btn btn--danger" id="btnConfirmCancelOrder" type="button">
+                    <i class="bx bx-trash"></i> Xác nhận Hủy đơn
+                </button>
+            </div>
         </div>
     </div>
-</div>
 
-<!-- TOAST NOTIFICATION CONTAINER -->
-<div class="toast-container" id="toastContainer"></div>
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container" id="toastContainer"></div>
 
 
-</main>
+    </main>
 </div>
 
 </body>

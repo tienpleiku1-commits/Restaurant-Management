@@ -1,10 +1,5 @@
 <?php
 
-global $conn;
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    require_once __DIR__ . '/../../../config/Database.php';
-    $conn = (new Database())->getConnection();
-}
 require_once __DIR__ . '/function.php';
 
 $message = '';

@@ -1,9 +1,4 @@
 <?php
-global $conn;
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    require_once __DIR__ . '/../../../config/Database.php';
-    $conn = (new Database())->getConnection();
-}
 require_once __DIR__ . '/function.php';
 
 $message = '';
@@ -15,7 +10,7 @@ $messageType = 'success';
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_update_status'])) {
     $orderId = (int)($_POST['orderId'] ?? 0);
     $status  = trim($_POST['status'] ?? '');
-    
+
     if ($orderId > 0 && orders_update_status($conn, $orderId, $status)) {
         $statusName = orders_status_name($status);
         $message = "Cập nhật thành công: Đơn hàng #DH-$orderId chuyển sang \"$statusName\"!";
@@ -82,7 +77,7 @@ $paymentFilter = $_GET['payment'] ?? 'all';
 $dateFilter    = $_GET['period'] ?? 'all';
 
 // Lọc mảng đơn hàng bằng PHP thuần
-$filteredOrders = array_filter($allOrders, function($o) use ($statusFilter, $searchKw, $orderType, $paymentFilter, $dateFilter) {
+$filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $searchKw, $orderType, $paymentFilter, $dateFilter) {
     // Lọc theo Tab trạng thái
     if ($statusFilter !== 'all' && $o['status'] !== $statusFilter) {
         return false;

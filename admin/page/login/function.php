@@ -1,7 +1,8 @@
 <?php // Kiểm tra tài khoản quản trị bằng MySQLi.
 
 // Kiểm tra tài khoản và mật khẩu quản trị
-function admin_login($conn, $username, $password) {
+function admin_login($conn, $username, $password)
+{
     $stmt = $conn->prepare(
         'SELECT adminId, username, passwordHash, adminName
          FROM admin

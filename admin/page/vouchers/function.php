@@ -1,7 +1,8 @@
 <?php
 
 // Lấy danh sách voucher (kèm tên chương trình khuyến mãi)
-function voucher_get_all($conn) {
+function voucher_get_all($conn)
+{
 
     $sql = "SELECT v.*, p.title AS promotionTitle
             FROM voucher v
@@ -16,7 +17,8 @@ function voucher_get_all($conn) {
 }
 
 // Lấy danh sách chương trình khuyến mãi (đổ vào ô chọn trong form)
-function voucher_get_promotions($conn) {
+function voucher_get_promotions($conn)
+{
 
     $sql = "SELECT promotionId, title
             FROM promotion
@@ -28,7 +30,8 @@ function voucher_get_promotions($conn) {
 }
 
 // Kiểm tra mã voucher đã tồn tại chưa
-function voucher_code_exists($conn, $code, $excludeId = 0) {
+function voucher_code_exists($conn, $code, $excludeId = 0)
+{
 
     $stmt = $conn->prepare(
         "SELECT voucherId
@@ -137,7 +140,8 @@ function voucher_update(
 }
 
 // Bật / tạm ngưng voucher - trả về trạng thái mới (1/0) hoặc false
-function voucher_toggle($conn, $id) {
+function voucher_toggle($conn, $id)
+{
 
     $stmt = $conn->prepare(
         "UPDATE voucher
@@ -168,7 +172,8 @@ function voucher_toggle($conn, $id) {
 }
 
 // Xóa mềm voucher
-function voucher_delete($conn, $id) {
+function voucher_delete($conn, $id)
+{
 
     $stmt = $conn->prepare(
         "UPDATE voucher
@@ -182,7 +187,8 @@ function voucher_delete($conn, $id) {
 }
 
 // Tính toán trạng thái hiển thị và thống kê cho danh sách voucher
-function voucher_prepare_display($vouchers) {
+function voucher_prepare_display($vouchers)
+{
     $totalVouchers  = count($vouchers);
     $activeVouchers = 0;
     $totalUsedCount = 0;
@@ -223,4 +229,3 @@ function voucher_prepare_display($vouchers) {
         'expiredOrOff'   => $expiredOrOff,
     ];
 }
-

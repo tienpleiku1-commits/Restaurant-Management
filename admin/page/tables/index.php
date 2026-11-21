@@ -1,12 +1,22 @@
 <?php
-if (!defined('ADMIN_ROUTER')) { http_response_code(403); exit('Không được phép truy cập trực tiếp.'); }
-if (empty($_SESSION['admin_id'])) { header('Location: index.php?page=login'); exit; }
+if (!defined('ADMIN_ROUTER')) {
+    http_response_code(403);
+    exit('Không được phép truy cập trực tiếp.');
+}
+
+if (empty($_SESSION['admin_id'])) {
+    header('Location: index.php?page=login');
+    exit;
+}
+
 require_once __DIR__ . "/action.php";
 
-$pageTitle  = "Quản lý bàn - Nhóm 3";
+$pageTitle = "Quản lý bàn - Nhóm 3";
 $activePage = "tables";
-include_once __DIR__ . "/../../../layouts/admin_header.php";
+
+include_once __DIR__ . '/../../../layouts/admin_header.php';
 ?>
+
 <!-- PAGE TITLE -->
 <div class="page-title">
     <div>
@@ -444,11 +454,13 @@ include_once __DIR__ . "/../../../layouts/admin_header.php";
     //  ĐỒNG HỒ THỜI GIAN THỰC
     // ============================
     function updateClock() {
+        const clockEl = document.getElementById('clockTime');
+        if (!clockEl) return;
         const now = new Date();
         const h = String(now.getHours()).padStart(2, '0');
         const m = String(now.getMinutes()).padStart(2, '0');
         const s = String(now.getSeconds()).padStart(2, '0');
-        document.getElementById('clockTime').textContent = `${h}:${m}:${s}`;
+        clockEl.textContent = `${h}:${m}:${s}`;
     }
     setInterval(updateClock, 1000);
     updateClock();
@@ -744,7 +756,7 @@ include_once __DIR__ . "/../../../layouts/admin_header.php";
         document.getElementById('inputTableName').value = card.querySelector('.table-card__number').textContent;
         document.getElementById('inputCapacity').value = card.dataset.capacity;
         document.getElementById('inputZone').value = card.dataset.area;
-        document.getElementById('inputStatus').value = card.dataset.status.toUpperCase();
+        document.getElementById('inputStatus').value = (card.dataset.status || 'available').toLowerCase();
         openTableModal('Chỉnh sửa bàn');
         // Đóng dropdown
         document.querySelectorAll('.table-card__menu.active').forEach(m => m.classList.remove('active'));

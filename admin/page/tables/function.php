@@ -1,7 +1,8 @@
 <?php
 
 // Lấy danh sách bàn đang hoạt động
-function table_get_all($conn) {
+function table_get_all($conn)
+{
     $sql = "SELECT * FROM service_table
             WHERE isDeleted = 0
             ORDER BY tableId";
@@ -10,7 +11,8 @@ function table_get_all($conn) {
 }
 
 // Lấy danh sách đặt bàn đang chờ hoặc đã xác nhận
-function table_get_reservations($conn) {
+function table_get_reservations($conn)
+{
     $sql = "SELECT * FROM reservation
             WHERE isDeleted = 0
             AND status IN ('PENDING', 'CONFIRMED')
@@ -20,14 +22,17 @@ function table_get_reservations($conn) {
 }
 
 // Thêm hoặc cập nhật bàn
-function table_save($conn, $data, $id = 0) {
+function table_save($conn, $data, $id = 0)
+{
     $number = trim($data['tableNumber'] ?? '');
     $area = trim($data['area'] ?? '');
     $capacity = max(1, (int)($data['capacity'] ?? 4));
     $status = strtoupper($data['status'] ?? 'AVAILABLE');
 
-    if ($number === '' || $area === '' ||
-        !in_array($status, ['AVAILABLE', 'OCCUPIED', 'RESERVED'], true)) {
+    if (
+        $number === '' || $area === '' ||
+        !in_array($status, ['AVAILABLE', 'OCCUPIED', 'RESERVED'], true)
+    ) {
         return false;
     }
 
@@ -50,7 +55,8 @@ function table_save($conn, $data, $id = 0) {
 }
 
 // Cập nhật trạng thái bàn
-function table_update_status($conn, $id, $status) {
+function table_update_status($conn, $id, $status)
+{
     $status = strtoupper($status);
     if (!in_array($status, ['AVAILABLE', 'OCCUPIED', 'RESERVED'], true)) {
         return false;
@@ -64,7 +70,8 @@ function table_update_status($conn, $id, $status) {
 }
 
 // Xác nhận hoặc hủy đặt bàn
-function table_update_reservation($conn, $id, $status) {
+function table_update_reservation($conn, $id, $status)
+{
     $stmt = $conn->prepare(
         'UPDATE reservation SET status=? WHERE reservationId=? AND isDeleted=0'
     );
@@ -73,7 +80,8 @@ function table_update_reservation($conn, $id, $status) {
 }
 
 // Xóa mềm bàn
-function table_delete($conn, $id) {
+function table_delete($conn, $id)
+{
     $stmt = $conn->prepare(
         'UPDATE service_table SET isDeleted=1 WHERE tableId=?'
     );
@@ -82,7 +90,8 @@ function table_delete($conn, $id) {
 }
 
 // Đếm số lượng bàn theo trạng thái
-function table_count_statuses($tables) {
+function table_count_statuses($tables)
+{
     $counts = ['AVAILABLE' => 0, 'OCCUPIED' => 0, 'RESERVED' => 0];
     foreach ($tables as $row) {
         if (isset($counts[$row['status']])) {
@@ -93,7 +102,8 @@ function table_count_statuses($tables) {
 }
 
 // Bản đồ khu vực hiển thị
-function table_get_area_map() {
+function table_get_area_map()
+{
     return [
         'Trong nhà'   => ['slug' => 'tang1-trong', 'label' => 'Tầng 1 - Trong nhà', 'icon' => 'bx-building-house'],
         'Ngoài trời'  => ['slug' => 'tang1-ngoai', 'label' => 'Tầng 1 - Ngoài trời', 'icon' => 'bx-sun'],
@@ -103,7 +113,8 @@ function table_get_area_map() {
 }
 
 // Nhóm bàn theo khu vực
-function table_group_by_area($tables) {
+function table_group_by_area($tables)
+{
     $groups = [];
     foreach ($tables as $table) {
         $groups[$table['area'] ?: 'Chưa phân khu'][] = $table;
@@ -112,13 +123,15 @@ function table_group_by_area($tables) {
 }
 
 if (!function_exists('h')) {
-    function h($value) {
+    function h($value)
+    {
         return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
     }
 }
 
 if (!function_exists('statusText')) {
-    function statusText($status) {
+    function statusText($status)
+    {
         return [
             'AVAILABLE' => 'Trống',
             'OCCUPIED'  => 'Đang phục vụ',
@@ -128,13 +141,15 @@ if (!function_exists('statusText')) {
 }
 
 if (!function_exists('statusClass')) {
-    function statusClass($status) {
+    function statusClass($status)
+    {
         return strtolower((string)$status);
     }
 }
 
 if (!function_exists('resStatusText')) {
-    function resStatusText($status) {
+    function resStatusText($status)
+    {
         return [
             'PENDING'   => 'Chờ xác nhận',
             'CONFIRMED' => 'Đã xác nhận',
@@ -144,7 +159,8 @@ if (!function_exists('resStatusText')) {
 }
 
 if (!function_exists('resStatusClass')) {
-    function resStatusClass($status) {
+    function resStatusClass($status)
+    {
         return [
             'PENDING'   => 'pending',
             'CONFIRMED' => 'confirmed',
@@ -152,4 +168,3 @@ if (!function_exists('resStatusClass')) {
         ][strtoupper((string)$status)] ?? 'default';
     }
 }
-

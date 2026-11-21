@@ -1,6 +1,12 @@
 <?php
-if (!defined('ADMIN_ROUTER')) { http_response_code(403); exit('Không được phép truy cập trực tiếp.'); }
-if (empty($_SESSION['admin_id'])) { header('Location: index.php?page=login'); exit; }
+if (!defined('ADMIN_ROUTER')) {
+    http_response_code(403);
+    exit('Không được phép truy cập trực tiếp.');
+}
+if (empty($_SESSION['admin_id'])) {
+    header('Location: index.php?page=login');
+    exit;
+}
 require_once __DIR__ . '/action.php';
 
 $pageTitle  = 'Quản lý Voucher & Khuyến mãi - Restaurant Management System';
@@ -16,8 +22,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         </p>
     </div>
     <a href="index.php?page=vouchers&action=create" class="btn btn--primary">
-    <i class="bx bx-plus"></i> Tạo Voucher mới
-</a>
+        <i class="bx bx-plus"></i> Tạo Voucher mới
+    </a>
 </div>
 
 <!-- THÔNG BÁO THAO TÁC DATABASE -->
@@ -170,12 +176,12 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                             <td>
                                 <div class="action-btns">
-                                    <a href="index.php?page=vouchers&edit=<?= 
-                                    $v['voucherId'] ?>" class="action-btn" 
-                                    title="Chỉnh sửa Voucher">
+                                    <a href="index.php?page=vouchers&edit=<?=
+                                                                            $v['voucherId'] ?>" class="action-btn"
+                                        title="Chỉnh sửa Voucher">
                                         <i class="bx bx-edit-alt"></i>
-                                        </a>
-                                    
+                                    </a>
+
                                     <a href="<?= $currentVoucherUrl . $querySep ?>action=toggle&id=<?= $v['voucherId'] ?>"
                                         class="action-btn action-btn--warning"
                                         title="<?= $isActive ? 'Tạm ngưng Voucher' : 'Kích hoạt lại Voucher' ?>">
@@ -317,12 +323,3 @@ if ($isEdit) {
         </form>
     </div>
 </div>
-<script>
-
-<!-- KẾT THÚC VÙNG NỘI DUNG CHÍNH -->
-</main>
-</div>
-
-</body>
-
-</html>

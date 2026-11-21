@@ -1,10 +1,5 @@
 <?php
 
-global $conn;
-if (!isset($conn) || !($conn instanceof mysqli)) {
-    require_once __DIR__ . '/../../../config/Database.php';
-    $conn = (new Database())->getConnection();
-}
 require_once __DIR__ . '/function.php';
 
 $message = '';
@@ -34,29 +29,41 @@ if (
 
         $message = 'Vui lòng nhập đầy đủ Mã Voucher và Mức giảm lớn hơn 0!';
         $messageType = 'danger';
-
     } elseif ($discountType === 'PERCENT' && $discountValue > 100) {
 
         $message = 'Voucher giảm theo % không được vượt quá 100!';
         $messageType = 'danger';
-
     } elseif ($voucherId > 0) {
 
         $ok = voucher_update(
-            $conn, $voucherId, $code, $discountType, $discountValue,
-            $minOrderValue, $expiryDate, $usageLimit, $promotionId, $isActive
+            $conn,
+            $voucherId,
+            $code,
+            $discountType,
+            $discountValue,
+            $minOrderValue,
+            $expiryDate,
+            $usageLimit,
+            $promotionId,
+            $isActive
         );
 
         $message = $ok
             ? "Đã cập nhật thành công Voucher \"$code\"!"
             : "Không thể cập nhật Voucher \"$code\" (mã có thể bị trùng)!";
         $messageType = $ok ? 'success' : 'danger';
-
     } else {
 
         $newId = voucher_create(
-            $conn, $code, $discountType, $discountValue,
-            $minOrderValue, $expiryDate, $usageLimit, $promotionId, $isActive
+            $conn,
+            $code,
+            $discountType,
+            $discountValue,
+            $minOrderValue,
+            $expiryDate,
+            $usageLimit,
+            $promotionId,
+            $isActive
         );
 
         $message = $newId
@@ -116,13 +123,13 @@ $filterStatus = $_GET['status'] ?? 'all';
 
 // Nếu có chọn lọc thì PHP sẽ lọc danh sách
 if ($searchKw !== '' || $filterType !== 'ALL' || $filterStatus !== 'all') {
-    $vouchers = array_filter($vouchers, function($v) use ($searchKw, $filterType, $filterStatus) {
+    $vouchers = array_filter($vouchers, function ($v) use ($searchKw, $filterType, $filterStatus) {
         $promoTitle = $v['promotionTitle'] ?? '';
-        
-        $matchSearch = ($searchKw === '') 
-            || (stripos($v['voucherCode'], $searchKw) !== false) 
+
+        $matchSearch = ($searchKw === '')
+            || (stripos($v['voucherCode'], $searchKw) !== false)
             || (stripos($promoTitle, $searchKw) !== false);
-            
+
         $matchType   = ($filterType === 'ALL') || (strtoupper($v['discountType']) === $filterType);
         $matchStatus = ($filterStatus === 'all') || ($v['computedStatus'] === $filterStatus);
 

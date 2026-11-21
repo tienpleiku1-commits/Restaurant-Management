@@ -1594,7 +1594,7 @@ select.modal-form__input {
 }
 
 .reservation-section__icon,
-.reservation-section__title > i {
+.reservation-section__title>i {
     width: 36px;
     height: 36px;
     border-radius: var(--r-sm);
@@ -1682,6 +1682,7 @@ select.modal-form__input {
     border: 1px solid rgba(245, 158, 11, 0.25);
     white-space: nowrap;
 }
+
 .status-badge--pending::before {
     background: var(--orange);
 }
@@ -1692,6 +1693,7 @@ select.modal-form__input {
     border: 1px solid rgba(34, 197, 94, 0.25);
     white-space: nowrap;
 }
+
 .status-badge--confirmed::before {
     background: var(--green);
 }
@@ -1702,6 +1704,7 @@ select.modal-form__input {
     border: 1px solid rgba(239, 68, 68, 0.25);
     white-space: nowrap;
 }
+
 .status-badge--cancelled::before {
     background: var(--red);
 }
@@ -1712,6 +1715,7 @@ select.modal-form__input {
     border: 1px solid rgba(107, 114, 128, 0.25);
     white-space: nowrap;
 }
+
 .status-badge--default::before {
     background: var(--gray);
 }

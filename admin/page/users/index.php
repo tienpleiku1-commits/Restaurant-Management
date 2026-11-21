@@ -1,10 +1,19 @@
 <?php
-if (!defined('ADMIN_ROUTER')) { http_response_code(403); exit('Không được phép truy cập trực tiếp.'); }
-if (empty($_SESSION['admin_id'])) { header('Location: index.php?page=login'); exit; }
-require_once __DIR__ . '/action.php';
+if (!defined('ADMIN_ROUTER')) {
+    http_response_code(403);
+    exit('Không được phép truy cập trực tiếp.');
+}
 
-$pageTitle  = 'Quản lý người dùng - Nhóm 3';
-$activePage = 'users';
+if (empty($_SESSION['admin_id'])) {
+    header('Location: index.php?page=login');
+    exit;
+}
+
+require_once __DIR__ . "/action.php";
+
+$pageTitle = "Quản lý người dùng - Nhóm 3";
+$activePage = "users";
+
 include_once __DIR__ . '/../../../layouts/admin_header.php';
 ?>
 

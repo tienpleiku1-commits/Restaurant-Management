@@ -1,7 +1,8 @@
 <?php
 
 // Thêm quản trị viên hoặc khách hàng
-function user_add($conn, $data) {
+function user_add($conn, $data)
+{
     $name = trim($data['fullname'] ?? '');
     $phone = trim($data['phone'] ?? '');
     $role = $data['role'] ?? 'Khách hàng';
@@ -44,7 +45,8 @@ function user_add($conn, $data) {
 }
 
 // Cập nhật thông tin người dùng
-function user_update($conn, $data) {
+function user_update($conn, $data)
+{
     $id = (int)($data['userId'] ?? 0);
     $type = $data['userType'] ?? '';
     $name = trim($data['fullname'] ?? '');
@@ -74,7 +76,8 @@ function user_update($conn, $data) {
 }
 
 // Khóa hoặc mở khóa người dùng bằng xóa mềm
-function user_toggle_status($conn, $type, $id) {
+function user_toggle_status($conn, $type, $id)
+{
     if (!in_array($type, ['admin', 'customer'], true) || $id <= 0) {
         return false;
     }
@@ -89,7 +92,8 @@ function user_toggle_status($conn, $type, $id) {
 }
 
 // Xóa mềm người dùng
-function user_delete($conn, $type, $id) {
+function user_delete($conn, $type, $id)
+{
     if (!in_array($type, ['admin', 'customer'], true) || $id <= 0) {
         return false;
     }
@@ -102,7 +106,8 @@ function user_delete($conn, $type, $id) {
 }
 
 // Lấy danh sách người dùng theo vai trò, từ khóa và trạng thái
-function user_get_all($conn, $search = '', $role = '', $status = '') {
+function user_get_all($conn, $search = '', $role = '', $status = '')
+{
     $users = [];
 
     if ($role === '' || $role === 'Quản trị') {
@@ -149,14 +154,16 @@ function user_get_all($conn, $search = '', $role = '', $status = '') {
 }
 
 // Tạo điều kiện lọc trạng thái
-function user_status_sql($status) {
+function user_status_sql($status)
+{
     if ($status === 'active') return ' AND isDeleted=0';
     if ($status === 'locked') return ' AND isDeleted=1';
     return '';
 }
 
 // Tính thống kê tổng hợp cho danh sách người dùng
-function user_calculate_stats($users) {
+function user_calculate_stats($users)
+{
     $statTotal = count($users);
     $statActive = count(array_filter($users, function ($u) {
         return ($u['status'] ?? '') === 'active';
@@ -170,4 +177,3 @@ function user_calculate_stats($users) {
         'endItem'      => $statTotal,
     ];
 }
-
