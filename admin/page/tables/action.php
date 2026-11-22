@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/function.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -10,15 +9,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $id = (int)($_POST['id'] ?? 0);
     $success = false;
     $message = 'Thao tác không thành công.';
+    $errorMsg = '';
 
     if ($action === 'save_table') {
 
-        $success = table_save($conn, $_POST, $id);
-        $message = $success ? 'Đã lưu bàn.' : 'Không thể lưu bàn.';
+        $success = table_save($conn, $_POST, $id, $errorMsg);
+        $message = $success ? 'Đã lưu bàn.' : ($errorMsg ?: 'Không thể lưu bàn.');
     } elseif ($action === 'update_status') {
 
-        $success = table_update_status($conn, $id, $_POST['status'] ?? '');
-        $message = $success ? 'Đã cập nhật trạng thái bàn.' : 'Trạng thái không hợp lệ.';
+        $success = table_update_status($conn, $id, $_POST['status'] ?? '', $errorMsg);
+        $message = $success ? 'Đã cập nhật trạng thái bàn.' : ($errorMsg ?: 'Trạng thái không hợp lệ.');
     } elseif ($action === 'confirm_reservation') {
 
         $success = table_update_reservation($conn, $id, 'CONFIRMED');
@@ -29,8 +29,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $message = $success ? 'Đã hủy đặt bàn.' : $message;
     } elseif ($action === 'delete_table') {
 
-        $success = table_delete($conn, $id);
-        $message = $success ? 'Đã xóa bàn.' : $message;
+        $success = table_delete($conn, $id, $errorMsg);
+        $message = $success ? 'Đã xóa bàn.' : ($errorMsg ?: $message);
     } else {
 
         $message = 'Thao tác không hợp lệ.';

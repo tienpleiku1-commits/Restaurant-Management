@@ -1224,12 +1224,6 @@ table {
     color: var(--text);
 }
 
-.dish-cell__note {
-    font-size: 0.74rem;
-    color: var(--primary-400);
-    font-style: italic;
-}
-
 /* Bill Calculations */
 .bill-calculation {
     margin-top: 16px;
@@ -1279,6 +1273,7 @@ table {
     gap: 14px;
     border-right: 1px solid var(--border);
     padding-right: 20px;
+    min-width: 0;
 }
 
 .pos-categories {
@@ -1372,6 +1367,7 @@ table {
     display: flex;
     flex-direction: column;
     gap: 14px;
+    min-width: 0;
 }
 
 .form-group {

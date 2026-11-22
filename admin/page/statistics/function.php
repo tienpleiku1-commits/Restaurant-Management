@@ -1,5 +1,4 @@
 <?php
-
 // Định dạng tiền VNĐ: 1250000 -> 1.250.000đ
 function stats_money($amount) {
 

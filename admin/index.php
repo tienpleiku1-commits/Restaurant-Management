@@ -1,76 +1,50 @@
 <?php
-
-// Kết nối và khởi tạo session Admin
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
 require_once __DIR__ . '/../config/Database.php';
-$db = new Database();
+$db   = new Database();
 $conn = $db->getConnection();
 
 if ($conn->connect_error) {
     die('Lỗi kết nối database: ' . $conn->connect_error);
 }
 
-// Lấy tên trang từ URL
-$page = $_GET['page'] ?? 'overview';
+$routes = ['overview', 'menu', 'warehouse', 'tables', 'orders', 'vouchers', 'users', 'statistics', 'login'];
+$page   = $_GET['page'] ?? 'overview';
 
-// Xử lý đăng xuất
 if ($page === 'logout') {
-
-    $_SESSION = [];
-
-    session_destroy();
-
+    unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role'], $_SESSION['admin_order_cart']);
     header('Location: index.php?page=login');
     exit;
 }
 
-// Danh sách đường dẫn Admin
-$routes = [
-    // Các trang chức năng
-    'overview'         => 'page/overview/index.php',
-
-    'menu'             => 'page/menu/index.php',
-
-    'warehouse'        => 'page/warehouse/index.php',
-
-
-    'tables'           => 'page/tables/index.php',
-
-
-    'orders'           => 'page/orders/index.php',
-
-    'vouchers'         => 'page/vouchers/index.php',
-
-
-    'users'            => 'page/users/index.php',
-
-    'statistics'       => 'page/statistics/index.php',
-
-    'login'            => 'page/login/index.php',
-];
-
-// Kiểm tra trang tồn tại
-if (!isset($routes[$page])) {
-
-    http_response_code(404);
-
-    exit('Không tìm thấy trang.');
+if (!in_array($page, $routes, true)) {
+    $page = 'overview';
 }
 
-// Lấy đường dẫn file
-$file = __DIR__ . '/' . $routes[$page];
+if ($page !== 'login') {
+    $adminId  = (int)($_SESSION['admin_id'] ?? 0);
+    $adminRow = null;
+    if ($adminId > 0) {
+        $stmt = $conn->prepare(
+            "SELECT adminId, adminName FROM admin WHERE adminId = ? AND role = 'ADMIN' AND isDeleted = 0 LIMIT 1"
+        );
+        $stmt->bind_param('i', $adminId);
+        $stmt->execute();
+        $adminRow = $stmt->get_result()->fetch_assoc();
+        $stmt->close();
+    }
 
-// Kiểm tra file
-if (!is_file($file)) {
+    if (!$adminRow) {
+        unset($_SESSION['admin_id'], $_SESSION['admin_name'], $_SESSION['admin_role'], $_SESSION['admin_order_cart']);
+        header('Location: index.php?page=login');
+        exit;
+    }
 
-    http_response_code(404);
-
-    exit('Không tìm thấy');
+    $_SESSION['admin_name'] = $adminRow['adminName'];
+    $_SESSION['admin_role'] = 'ADMIN';
 }
 
-// Hiển thị trang
-define('ADMIN_ROUTER', true);
-require $file;
+require_once __DIR__ . "/page/{$page}/index.php";

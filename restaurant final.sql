@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: localhost
--- Thời gian đã tạo: Th10 21, 2026 lúc 08:30 AM
+-- Thời gian đã tạo: Th10 22, 2026 lúc 03:03 PM
 -- Phiên bản máy phục vụ: 10.4.28-MariaDB
 -- Phiên bản PHP: 8.2.4
 
@@ -44,11 +44,13 @@ CREATE TABLE `admin` (
 
 INSERT INTO `admin` (`adminId`, `username`, `passwordHash`, `adminName`, `adminPhone`, `role`, `isDeleted`, `createdAt`) VALUES
 (1, 'admin01', '$2y$10$myOK5vrQZgKQJAfmbRX6f.EFi5lv238mPy/EAr6U90G8jikLmMxW.', 'Hồ Kim Lưu Thống', '0901234567', 'ADMIN', 0, '2026-10-24 13:09:25'),
-(2, 'manager01', '0795151defba7a4b5dfa89170de46277', 'Nguyễn Văn Minh', '0912345678', 'ADMIN', 0, '2026-10-24 13:09:25'),
-(3, 'staff01', 'de9bf5643eabf80f4a56fda3bbb84483', 'Trần Thị Lan', '0923456789', 'KITCHEN', 0, '2026-10-24 13:09:25'),
-(4, 'staff02', '3b615550a12aafc90faeedf650fa03c9', 'Lê Quốc Hùng', '0934567890', 'WAITER', 0, '2026-10-24 13:09:25'),
-(5, 'staff03', '9ef25637ea2acc74797fa8125046485b', 'Phạm Ngọc Anh', '0945678901', 'ADMIN', 1, '2026-10-24 13:09:25'),
-(7, 'hklt502', '$2y$10$nDkVuozSzClEwT1JJ2YhjOAiG.QKGzjM7CNN2Wi6B.MnPXF9AU4tC', 'bj jb', '87556778', 'ADMIN', 0, '2026-11-07 10:38:48');
+(2, 'manager01', '$2y$10$U1yh4OlhLAa6tvs6A7d85uUTmbc/ldm7iwPKuNrR3D6xgKcbG0Wua', 'Nguyễn Văn Minh', '0912345678', 'ADMIN', 0, '2026-10-24 13:09:25'),
+(3, 'staff01', '$2y$10$44petxOvKCXBRcV68A55kOqiHWajr9nwREY4af3ocD7EMXzPUG.tK', 'Trần Thị Lan', '0923456789', 'KITCHEN', 0, '2026-10-24 13:09:25'),
+(4, 'staff02', '$2y$10$PsUZOoVRjElykQy2qj/i5eoUyTyNbtao2LAA3q2vyemRae1RWUBY.', 'Lê Quốc Hùng', '0934567890', 'WAITER', 0, '2026-10-24 13:09:25'),
+(5, 'staff03', '$2y$10$li7AMJrRrUW3FZx1y6KOy.J0KtG/FAODcHQXCjyqjzdA1zU0av.Xu', 'Phạm Ngọc Anh', '0945678901', 'ADMIN', 1, '2026-10-24 13:09:25'),
+(7, 'hklt502', '$2y$10$nDkVuozSzClEwT1JJ2YhjOAiG.QKGzjM7CNN2Wi6B.MnPXF9AU4tC', 'bj jb', '87556778', 'ADMIN', 0, '2026-11-07 10:38:48'),
+(9, 'bep', '$2y$10$eaqnE55H1//jo5QJpiX5Y.czDFUXVV5NxXI0lpCV.ybrhF2UAscXW', 'đấ', '12345', 'KITCHEN', 0, '2026-11-21 17:10:26'),
+(10, 'pv', '$2y$10$TXSJzl3UbPm60JBZMzspXulIoRU/XrYU4YWHQNJU91WEdhUViWxe2', 'pv', '3123123', 'WAITER', 0, '2026-11-22 07:44:13');
 
 -- --------------------------------------------------------
 
@@ -131,11 +133,11 @@ CREATE TABLE `customer_voucher` (
 
 INSERT INTO `customer_voucher` (`id`, `customerId`, `voucherId`, `status`, `assignedAt`, `usedAt`) VALUES
 (1, 1, 1, 'USED', '2026-09-20 10:00:00', '2026-10-01 13:00:00'),
-(2, 1, 4, 'UNUSED', '2026-10-01 10:00:00', NULL),
+(2, 1, 4, 'USED', '2026-10-01 10:00:00', '2026-11-21 21:01:57'),
 (3, 3, 2, 'USED', '2026-09-15 08:30:00', '2026-10-01 13:00:00'),
 (4, 3, 1, 'UNUSED', '2026-10-01 09:00:00', NULL),
 (5, 3, 3, 'UNUSED', '2026-10-01 09:00:00', NULL),
-(6, 3, 4, 'UNUSED', '2026-10-01 09:00:00', NULL),
+(6, 3, 4, 'USED', '2026-10-01 09:00:00', '2026-11-22 08:47:02'),
 (7, 3, 5, 'UNUSED', '2026-10-01 09:00:00', NULL),
 (8, 4, 4, 'UNUSED', '2026-10-01 10:00:00', NULL),
 (9, 1, 7, 'UNUSED', '2026-10-24 13:43:25', NULL),
@@ -176,7 +178,7 @@ INSERT INTO `food` (`foodId`, `categoryId`, `foodName`, `foodDescription`, `food
 (4, 1, 'Xúc Xích Đức', 'Xúc xích Đức nhập khẩu', 80000, 0.00, 'AVAILABLE', 0, 'img/xucxich.jpg', 1, '2026-10-24 13:09:25'),
 (5, 2, 'Tôm Sú Tươi', 'Tôm sú tươi sống, size lớn', 180000, 0.00, 'AVAILABLE', 1, 'img/tomsu.jpg', 1, '2026-10-24 13:09:25'),
 (6, 2, 'Mực Ống Tươi', 'Mực ống tươi, sạch', 150000, 0.00, 'AVAILABLE', 0, 'img/mucong.jpg', 1, '2026-10-24 13:09:25'),
-(7, 2, 'Cua b', 'Cua biển tươi sống', 250000, 0.00, 'UNAVAILABLE', 1, 'img/cuabien.jpg', 0, '2026-10-24 13:09:25'),
+(7, 2, 'Cua b', 'Cua biển tươi sống', 250000, 0.00, 'AVAILABLE', 1, 'img/cuabien.jpg', 0, '2026-10-24 13:09:25'),
 (8, 3, 'Sủi Cảo Tôm', 'Sủi cảo nhân tôm tươi', 70000, 0.00, 'AVAILABLE', 0, 'img/suicao.jpg', 0, '2026-10-24 13:09:25'),
 (9, 3, 'Viên Bò Phô Mai', 'Viên bò nhân phô mai tan chảy', 75000, 0.00, 'AVAILABLE', 1, 'img/vienbo.jpg', 0, '2026-10-24 13:09:25'),
 (10, 3, 'Chả Cá Thác Lác', 'Chả cá truyền thống', 65000, 0.00, 'AVAILABLE', 0, 'img/chaca.jpg', 0, '2026-10-24 13:09:25'),
@@ -194,7 +196,7 @@ INSERT INTO `food` (`foodId`, `categoryId`, `foodName`, `foodDescription`, `food
 (22, 2, 'Tôm Nướng Muối Ớt Xanh', 'Tôm sú biển tươi sống nướng giòn rụm với muối ớt xanh cay nồng đậm vị', 195000, 0.00, 'AVAILABLE', 1, 'img/tomsu.jpg', 0, '2026-11-07 10:02:56'),
 (23, 2, 'Mực Chiên Giòn Sốt Me', 'Mực ống tươi lăn bột chiên vàng giòn rụm ăn kèm sốt me chua ngọt', 165000, 0.00, 'AVAILABLE', 0, 'img/mucong.jpg', 0, '2026-11-07 10:02:56'),
 (24, 2, 'Cua Rang Me Kiểu Thái', 'Cua biển tươi chắc thịt rim sốt me chua ngọt cay dịu chuẩn vị Thái', 285000, 0.00, 'AVAILABLE', 1, 'img/cuabien.jpg', 0, '2026-11-07 10:02:56'),
-(25, 3, 'Viên Tôm Phô Mai Hoàng Kim', 'Viên tôm giòn dai bọc nhân phô mai trứng muối tan chảy béo ngậy', 85000, 0.00, 'AVAILABLE', 0, 'img/vienbo.jpg', 0, '2026-11-07 10:02:56'),
+(25, 3, 'Viên Tôm Phô Mai Hoàng Kim', 'Viên tôm giòn dai bọc nhân phô mai trứng muối tan chảy béo ngậy', 85000, 0.00, 'UNAVAILABLE', 0, 'img/vienbo.jpg', 0, '2026-11-07 10:02:56'),
 (26, 4, 'Salad Rong Nho Rau Mầm', 'Rau mầm tươi mát kết hợp rong nho giòn ngọt và sốt mè rang thanh vị', 55000, 0.00, 'AVAILABLE', 0, 'img/raumuong.jpg', 0, '2026-11-07 10:02:56'),
 (27, 4, 'Nấm Thập Cẩm Xào Dầu Hào', 'Nấm kim châm, nấm đùi gà xào dầu hào hành boa-rô thơm phức', 65000, 0.00, 'AVAILABLE', 0, 'img/namkimcham.jpg', 0, '2026-11-07 10:02:56'),
 (28, 4, 'Lẩu Lòng Bò Sa Tế Cay', 'Lòng bò giòn sần sật ninh nhừ trong nước dùng lẩu sa tế thơm nồng', 165000, 0.00, 'AVAILABLE', 0, 'img/longlon.jpg', 0, '2026-11-07 10:02:56'),
@@ -227,9 +229,9 @@ CREATE TABLE `ingredient` (
 
 INSERT INTO `ingredient` (`ingredientId`, `ingredientName`, `unit`, `quantityInStock`, `minQuantity`, `isDeleted`, `createdAt`) VALUES
 (1, 'Thịt Bò Wagyu', 'kg', 32.000, 5.000, 1, '2026-10-24 13:09:25'),
-(2, 'Thịt Cừu Úc', 'kg', 1.000, 5.000, 0, '2026-10-24 13:09:25'),
+(2, 'Thịt Cừu Úc', 'kg', 99.000, 5.000, 0, '2026-10-24 13:09:25'),
 (3, 'Ba Chỉ Lợn', 'kg', 684.000, 5.000, 0, '2026-10-24 13:09:25'),
-(4, 'Xúc Xích Đức', 'cái', 1000.000, 10.000, 0, '2026-10-24 13:09:25'),
+(4, 'Xúc Xích Đức', 'cái', 957.000, 10.000, 0, '2026-10-24 13:09:25'),
 (5, 'Tôm Sú', 'kg', 1.000, 3.000, 0, '2026-10-24 13:09:25'),
 (6, 'Mực Ống', 'kg', 15.000, 3.000, 0, '2026-10-24 13:09:25'),
 (7, 'Cua Biển', 'kg', 8.000, 2.000, 0, '2026-10-24 13:09:25'),
@@ -272,7 +274,9 @@ INSERT INTO `inventory_log` (`logId`, `ingredientId`, `adminId`, `logType`, `qua
 (17, 1, 1, 'IMPORT', 32.000, 'fsd', '2026-11-08 19:57:11'),
 (18, 3, 1, 'IMPORT', 342.000, 'gfd', '2026-11-08 19:57:25'),
 (19, 3, 1, 'IMPORT', 342.000, 'gfd', '2026-11-08 19:59:16'),
-(20, 5, 1, 'EXPORT', 19.000, 'jh', '2026-11-17 10:25:44');
+(20, 5, 1, 'EXPORT', 19.000, 'jh', '2026-11-17 10:25:44'),
+(21, 4, 9, 'EXPORT', 43.000, 'bnhfg', '2026-11-22 07:47:20'),
+(22, 2, 9, 'IMPORT', 98.000, 'hjj', '2026-11-22 07:47:48');
 
 -- --------------------------------------------------------
 
@@ -328,7 +332,10 @@ INSERT INTO `orders` (`orderId`, `customerId`, `adminId`, `tableId`, `voucherId`
 (24, 1, 2, 2, NULL, 4, 320000, 0, 320000, 'CASH', 'CANCELLED', '2026-09-05 18:00:00', NULL, '2026-11-06 18:31:07'),
 (27, NULL, 1, 6, NULL, 4, 320000, 0, 320000, 'CASH', 'PAID', '2026-11-07 13:42:15', '2026-11-07 13:43:39', '2026-11-07 13:42:15'),
 (28, NULL, 1, 1, NULL, 2, 135000, 0, 135000, 'CASH', 'PAID', '2026-11-08 19:18:05', '2026-11-08 19:18:11', '2026-11-08 19:18:05'),
-(29, NULL, NULL, 1, NULL, 2, 105000, 0, 105000, 'CASH', 'COOKING', '2026-11-17 14:54:49', NULL, '2026-11-17 14:54:49');
+(29, NULL, NULL, 1, NULL, 2, 105000, 0, 105000, 'CASH', 'CANCELLED', '2026-11-17 14:54:49', NULL, '2026-11-17 14:54:49'),
+(30, 1, 1, 10, 4, 2, 210000, 31500, 178500, 'CASH', 'PENDING_PAY', '2026-11-21 21:01:57', '2026-11-21 21:04:31', '2026-11-21 21:01:57'),
+(31, NULL, 1, 1, NULL, 2, 300000, 0, 300000, 'CASH', 'PENDING_PAY', '2026-11-21 21:33:53', NULL, '2026-11-21 21:33:53'),
+(154, NULL, 10, 2, NULL, 2, 390000, 0, 390000, 'CASH', 'COOKING', '2026-11-22 20:48:10', NULL, '2026-11-22 20:48:10');
 
 -- --------------------------------------------------------
 
@@ -344,7 +351,6 @@ CREATE TABLE `order_items` (
   `unitPrice` decimal(12,0) NOT NULL,
   `lineTotal` decimal(12,0) NOT NULL,
   `itemStatus` varchar(20) NOT NULL DEFAULT 'ORDERED',
-  `note` varchar(255) DEFAULT NULL,
   `createdAt` datetime NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_general_ci;
 
@@ -352,60 +358,64 @@ CREATE TABLE `order_items` (
 -- Đang đổ dữ liệu cho bảng `order_items`
 --
 
-INSERT INTO `order_items` (`orderItemId`, `orderId`, `foodId`, `quantity`, `unitPrice`, `lineTotal`, `itemStatus`, `note`, `createdAt`) VALUES
-(1, 1, 1, 2, 350000, 700000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(2, 1, 8, 2, 70000, 140000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(3, 1, 11, 2, 30000, 60000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(4, 1, 15, 5, 35000, 175000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(5, 1, 14, 4, 15000, 60000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(6, 2, 3, 2, 120000, 240000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(7, 2, 10, 2, 65000, 130000, 'COOKING', NULL, '2026-10-24 13:09:25'),
-(8, 2, 14, 2, 15000, 30000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(9, 3, 5, 3, 180000, 540000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(10, 3, 6, 2, 150000, 300000, 'COOKING', NULL, '2026-10-24 13:09:25'),
-(11, 3, 1, 1, 350000, 350000, 'ORDER', NULL, '2026-10-24 13:09:25'),
-(12, 3, 15, 8, 35000, 280000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(13, 4, 8, 2, 70000, 140000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(14, 4, 14, 4, 15000, 60000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(15, 4, 13, 3, 40000, 120000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(16, 5, 3, 1, 120000, 120000, 'ORDER', NULL, '2026-10-24 13:09:25'),
-(17, 5, 14, 3, 15000, 45000, 'ORDER', NULL, '2026-10-24 13:09:25'),
-(18, 6, 2, 2, 280000, 560000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(19, 6, 9, 4, 75000, 300000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(20, 7, 7, 3, 250000, 750000, 'SERVED', NULL, '2026-10-24 13:09:25'),
-(21, 7, 1, 3, 350000, 1050000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(22, 7, 6, 2, 150000, 300000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(23, 8, 1, 1, 350000, 350000, 'ORDER', 'Khách đổi ý hủy đơn', '2026-11-06 18:31:07'),
-(24, 9, 1, 4, 350000, 1400000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(25, 9, 7, 4, 250000, 1000000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(26, 9, 15, 8, 35000, 280000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(27, 10, 3, 2, 120000, 240000, 'SERVED', 'Mang về', '2026-11-06 18:31:07'),
-(28, 10, 8, 1, 70000, 70000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(29, 11, 2, 2, 280000, 560000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(30, 11, 3, 2, 120000, 240000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(31, 12, 5, 1, 180000, 180000, 'SERVED', 'Giao hàng', '2026-11-06 18:31:07'),
-(32, 12, 6, 1, 150000, 150000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(33, 13, 6, 1, 150000, 150000, 'ORDER', 'Đã hủy', '2026-11-06 18:31:07'),
-(34, 14, 1, 5, 350000, 1750000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(35, 14, 7, 3, 250000, 750000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(36, 15, 2, 2, 280000, 560000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(37, 15, 9, 3, 75000, 225000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(38, 16, 3, 3, 120000, 360000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(39, 17, 5, 2, 180000, 360000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(40, 18, 1, 2, 350000, 700000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(41, 19, 1, 8, 350000, 2800000, 'SERVED', 'Tiệc công ty', '2026-11-06 18:31:07'),
-(42, 19, 7, 8, 250000, 2000000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(43, 20, 2, 2, 280000, 560000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(44, 21, 6, 3, 150000, 450000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(45, 22, 5, 2, 180000, 360000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(46, 23, 1, 1, 350000, 350000, 'SERVED', NULL, '2026-11-06 18:31:07'),
-(47, 24, 2, 1, 280000, 280000, 'ORDER', 'Khách hủy bàn', '2026-11-06 18:31:07'),
-(50, 27, 7, 1, 250000, 250000, 'ORDER', '', '2026-11-07 13:42:15'),
-(51, 27, 8, 1, 70000, 70000, 'ORDER', '', '2026-11-07 13:42:15'),
-(52, 28, 8, 1, 70000, 70000, 'ORDER', '', '2026-11-08 19:18:05'),
-(53, 28, 10, 1, 65000, 65000, 'ORDER', '', '2026-11-08 19:18:05'),
-(54, 29, 9, 1, 75000, 75000, 'ORDERED', '', '2026-11-17 14:54:49'),
-(55, 29, 11, 1, 30000, 30000, 'ORDERED', '', '2026-11-17 14:54:49');
+INSERT INTO `order_items` (`orderItemId`, `orderId`, `foodId`, `quantity`, `unitPrice`, `lineTotal`, `itemStatus`, `createdAt`) VALUES
+(1, 1, 1, 2, 350000, 700000, 'SERVED', '2026-10-24 13:09:25'),
+(2, 1, 8, 2, 70000, 140000, 'SERVED', '2026-10-24 13:09:25'),
+(3, 1, 11, 2, 30000, 60000, 'SERVED', '2026-10-24 13:09:25'),
+(4, 1, 15, 5, 35000, 175000, 'SERVED', '2026-10-24 13:09:25'),
+(5, 1, 14, 4, 15000, 60000, 'SERVED', '2026-10-24 13:09:25'),
+(6, 2, 3, 2, 120000, 240000, 'SERVED', '2026-10-24 13:09:25'),
+(7, 2, 10, 2, 65000, 130000, 'COOKING', '2026-10-24 13:09:25'),
+(8, 2, 14, 2, 15000, 30000, 'SERVED', '2026-10-24 13:09:25'),
+(9, 3, 5, 3, 180000, 540000, 'SERVED', '2026-10-24 13:09:25'),
+(10, 3, 6, 2, 150000, 300000, 'COOKING', '2026-10-24 13:09:25'),
+(11, 3, 1, 1, 350000, 350000, 'ORDER', '2026-10-24 13:09:25'),
+(12, 3, 15, 8, 35000, 280000, 'SERVED', '2026-10-24 13:09:25'),
+(13, 4, 8, 2, 70000, 140000, 'SERVED', '2026-10-24 13:09:25'),
+(14, 4, 14, 4, 15000, 60000, 'SERVED', '2026-10-24 13:09:25'),
+(15, 4, 13, 3, 40000, 120000, 'SERVED', '2026-10-24 13:09:25'),
+(16, 5, 3, 1, 120000, 120000, 'ORDER', '2026-10-24 13:09:25'),
+(17, 5, 14, 3, 15000, 45000, 'ORDER', '2026-10-24 13:09:25'),
+(18, 6, 2, 2, 280000, 560000, 'SERVED', '2026-10-24 13:09:25'),
+(19, 6, 9, 4, 75000, 300000, 'SERVED', '2026-10-24 13:09:25'),
+(20, 7, 7, 3, 250000, 750000, 'SERVED', '2026-10-24 13:09:25'),
+(21, 7, 1, 3, 350000, 1050000, 'SERVED', '2026-11-06 18:31:07'),
+(22, 7, 6, 2, 150000, 300000, 'SERVED', '2026-11-06 18:31:07'),
+(23, 8, 1, 1, 350000, 350000, 'ORDER', '2026-11-06 18:31:07'),
+(24, 9, 1, 4, 350000, 1400000, 'SERVED', '2026-11-06 18:31:07'),
+(25, 9, 7, 4, 250000, 1000000, 'SERVED', '2026-11-06 18:31:07'),
+(26, 9, 15, 8, 35000, 280000, 'SERVED', '2026-11-06 18:31:07'),
+(27, 10, 3, 2, 120000, 240000, 'SERVED', '2026-11-06 18:31:07'),
+(28, 10, 8, 1, 70000, 70000, 'SERVED', '2026-11-06 18:31:07'),
+(29, 11, 2, 2, 280000, 560000, 'SERVED', '2026-11-06 18:31:07'),
+(30, 11, 3, 2, 120000, 240000, 'SERVED', '2026-11-06 18:31:07'),
+(31, 12, 5, 1, 180000, 180000, 'SERVED', '2026-11-06 18:31:07'),
+(32, 12, 6, 1, 150000, 150000, 'SERVED', '2026-11-06 18:31:07'),
+(33, 13, 6, 1, 150000, 150000, 'ORDER', '2026-11-06 18:31:07'),
+(34, 14, 1, 5, 350000, 1750000, 'SERVED', '2026-11-06 18:31:07'),
+(35, 14, 7, 3, 250000, 750000, 'SERVED', '2026-11-06 18:31:07'),
+(36, 15, 2, 2, 280000, 560000, 'SERVED', '2026-11-06 18:31:07'),
+(37, 15, 9, 3, 75000, 225000, 'SERVED', '2026-11-06 18:31:07'),
+(38, 16, 3, 3, 120000, 360000, 'SERVED', '2026-11-06 18:31:07'),
+(39, 17, 5, 2, 180000, 360000, 'SERVED', '2026-11-06 18:31:07'),
+(40, 18, 1, 2, 350000, 700000, 'SERVED', '2026-11-06 18:31:07'),
+(41, 19, 1, 8, 350000, 2800000, 'SERVED', '2026-11-06 18:31:07'),
+(42, 19, 7, 8, 250000, 2000000, 'SERVED', '2026-11-06 18:31:07'),
+(43, 20, 2, 2, 280000, 560000, 'SERVED', '2026-11-06 18:31:07'),
+(44, 21, 6, 3, 150000, 450000, 'SERVED', '2026-11-06 18:31:07'),
+(45, 22, 5, 2, 180000, 360000, 'SERVED', '2026-11-06 18:31:07'),
+(46, 23, 1, 1, 350000, 350000, 'SERVED', '2026-11-06 18:31:07'),
+(47, 24, 2, 1, 280000, 280000, 'ORDER', '2026-11-06 18:31:07'),
+(50, 27, 7, 1, 250000, 250000, 'ORDER', '2026-11-07 13:42:15'),
+(51, 27, 8, 1, 70000, 70000, 'ORDER', '2026-11-07 13:42:15'),
+(52, 28, 8, 1, 70000, 70000, 'ORDER', '2026-11-08 19:18:05'),
+(53, 28, 10, 1, 65000, 65000, 'ORDER', '2026-11-08 19:18:05'),
+(54, 29, 9, 1, 75000, 75000, 'CANCELLED', '2026-11-17 14:54:49'),
+(55, 29, 11, 1, 30000, 30000, 'CANCELLED', '2026-11-17 14:54:49'),
+(56, 30, 8, 3, 70000, 210000, 'SERVED', '2026-11-21 21:01:57'),
+(57, 31, 9, 4, 75000, 300000, 'SERVED', '2026-11-21 21:33:53'),
+(216, 154, 7, 1, 250000, 250000, 'ORDERED', '2026-11-22 20:48:10'),
+(217, 154, 8, 2, 70000, 140000, 'ORDERED', '2026-11-22 20:48:10');
 
 -- --------------------------------------------------------
 
@@ -430,11 +440,11 @@ CREATE TABLE `promotion` (
 --
 
 INSERT INTO `promotion` (`promotionId`, `title`, `badgeText`, `description`, `expiryInfo`, `targetAudience`, `imageURL`, `isActive`, `createdAt`) VALUES
-(1, 'Tặng voucher 100k cho nhóm trên 5 người', 'Tặng voucher 100k', 'Áp dụng cho khách hàng đi theo nhóm từ 5 người trở lên.', 'Hạn sử dụng: 31/12/2026', 'Mọi khách hàng', '/public/asset/img/promo1.jpg', 1, '2026-10-24 13:09:25'),
-(2, 'Giảm 15% tổng bill cho hội viên mới', 'Giảm 15% tổng bill', 'Tạo tài khoản và nhận ngay ưu đãi 15% cho hóa đơn đầu tiên.', 'Không giới hạn thời gian', 'Khách hàng mới', '/public/asset/img/promo2.jpg', 1, '2026-10-24 13:09:25'),
-(3, 'Đi 4 tính 3 ngày trong tuần', 'Đi 4 tính 3', 'Chỉ áp dụng từ Thứ 2 đến Thứ 6.', 'Hạn sử dụng: 31/12/2026', 'Mọi khách hàng', '/public/asset/img/promo3.jpg', 1, '2026-10-24 13:09:25'),
-(4, 'Ưu đãi tháng sinh nhật', 'Giảm 20% sinh nhật', 'Vui lòng xuất trình CCCD để được giảm 20% tháng sinh nhật.', 'Tháng sinh nhật', 'Thành viên', '/public/asset/img/promo4.jpg', 1, '2026-10-24 13:09:25'),
-(5, 'Giờ vàng 16h - 18h', 'Bia giảm 50%', 'Tất cả các loại bia giảm 50% trong khung giờ vàng.', 'Hàng ngày 16:00-18:00', 'Mọi khách hàng', '/public/asset/img/promo5.jpg', 1, '2026-10-24 13:09:25');
+(1, 'Tặng voucher 100k cho nhóm trên 5 người', 'Tặng voucher 100k', 'Áp dụng cho khách hàng đi theo nhóm từ 5 người trở lên.', 'Hạn sử dụng: 31/12/2026', 'Mọi khách hàng', 'img/promo1.jpg', 1, '2026-10-24 13:09:25'),
+(2, 'Giảm 15% tổng bill cho hội viên mới', 'Giảm 15% tổng bill', 'Tạo tài khoản và nhận ngay ưu đãi 15% cho hóa đơn đầu tiên.', 'Không giới hạn thời gian', 'Khách hàng mới', 'img/promo2.jpg', 1, '2026-10-24 13:09:25'),
+(3, 'Đi 4 tính 3 ngày trong tuần', 'Đi 4 tính 3', 'Chỉ áp dụng từ Thứ 2 đến Thứ 6.', 'Hạn sử dụng: 31/12/2026', 'Mọi khách hàng', 'img/promo3.jpg', 1, '2026-10-24 13:09:25'),
+(4, 'Ưu đãi tháng sinh nhật', 'Giảm 20% sinh nhật', 'Vui lòng xuất trình CCCD để được giảm 20% tháng sinh nhật.', 'Tháng sinh nhật', 'Thành viên', 'img/promo4.jpg', 1, '2026-10-24 13:09:25'),
+(5, 'Giờ vàng 16h - 18h', 'Bia giảm 50%', 'Tất cả các loại bia giảm 50% trong khung giờ vàng.', 'Hàng ngày 16:00-18:00', 'Mọi khách hàng', 'img/promo5.jpg', 1, '2026-10-24 13:09:25');
 
 -- --------------------------------------------------------
 
@@ -499,13 +509,13 @@ INSERT INTO `service_table` (`tableId`, `tableNumber`, `area`, `capacity`, `stat
 (1, 'T01', 'Trong nhà', 4, 'OCCUPIED', 0, '2026-10-24 13:09:25'),
 (2, 'T02', 'Trong nhà', 4, 'OCCUPIED', 0, '2026-10-24 13:09:25'),
 (3, 'T03', 'Trong nhà', 6, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(4, 'T04', 'Trong nhà', 4, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(5, 'T05', 'Trong nhà', 2, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(6, 'T06', 'Ngoài trời', 6, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(7, 'T07', 'Ngoài trời', 4, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(8, 'T08', 'Ngoài trời', 8, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(9, 'T09', 'VIP', 10, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(10, 'T10', 'VIP', 10, 'AVAILABLE', 0, '2026-10-24 13:09:25');
+(4, 'T04', 'Trong nhà', 4, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(5, 'T05', 'Trong nhà', 2, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(6, 'T06', 'Ngoài trời', 6, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(7, 'T07', 'Ngoài trời', 4, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(8, 'T08', 'Ngoài trời', 8, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(9, 'T09', 'VIP', 10, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(10, 'T10', 'VIP', 10, 'OCCUPIED', 0, '2026-10-24 13:09:25');
 
 -- --------------------------------------------------------
 
@@ -536,11 +546,11 @@ INSERT INTO `voucher` (`voucherId`, `promotionId`, `voucherCode`, `discountType`
 (1, 2, 'WELCOME10', 'PERCENT', 10.00, 200000, '2026-12-31', 100, 5, 1, 0, '2026-10-24 13:09:25'),
 (2, 1, 'SALE50K', 'FIXED', 50000.00, 300000, '2026-11-30', 50, 12, 1, 0, '2026-10-24 13:09:25'),
 (3, 3, 'VIP20', 'PERCENT', 20.00, 500000, '2026-12-31', 30, 3, 1, 0, '2026-10-24 13:09:25'),
-(4, 4, 'BIRTHDAY15', 'PERCENT', 15.00, 150000, '2026-12-31', 200, 8, 1, 0, '2026-10-24 13:09:25'),
+(4, 4, 'BIRTHDAY15', 'PERCENT', 15.00, 150000, '2026-12-31', 200, 10, 1, 0, '2026-10-24 13:09:25'),
 (5, 5, 'SUMMER30K', 'FIXED', 30000.00, 200000, '2026-10-31', 80, 20, 1, 0, '2026-10-24 13:09:25'),
 (6, NULL, 'EXPIRED5', 'PERCENT', 5.00, 100000, '2025-01-01', 10, 10, 0, 1, '2026-10-24 13:09:25'),
 (7, 1, 'GROUP100K', 'FIXED', 100000.00, 600000, '2026-12-31', 50, 0, 0, 0, '2026-10-24 13:40:26'),
-(8, 3, 'NEWBIE15', 'PERCENT', 15.00, 250000, '2026-12-31', 30, 0, 1, 0, '2026-10-24 13:40:26');
+(8, 1, 'NEWBIE15', 'PERCENT', 15.00, 250000, '2026-12-31', 30, 0, 1, 0, '2026-10-24 13:40:26');
 
 --
 -- Chỉ mục cho các bảng đã đổ
@@ -648,7 +658,7 @@ ALTER TABLE `voucher`
 -- AUTO_INCREMENT cho bảng `admin`
 --
 ALTER TABLE `admin`
-  MODIFY `adminId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `adminId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=225;
 
 --
 -- AUTO_INCREMENT cho bảng `category`
@@ -660,13 +670,13 @@ ALTER TABLE `category`
 -- AUTO_INCREMENT cho bảng `customer`
 --
 ALTER TABLE `customer`
-  MODIFY `customerId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+  MODIFY `customerId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
 
 --
 -- AUTO_INCREMENT cho bảng `customer_voucher`
 --
 ALTER TABLE `customer_voucher`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=15;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT cho bảng `food`
@@ -684,19 +694,19 @@ ALTER TABLE `ingredient`
 -- AUTO_INCREMENT cho bảng `inventory_log`
 --
 ALTER TABLE `inventory_log`
-  MODIFY `logId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `logId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=104;
 
 --
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `orderId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=30;
+  MODIFY `orderId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=155;
 
 --
 -- AUTO_INCREMENT cho bảng `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `orderItemId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=56;
+  MODIFY `orderItemId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=218;
 
 --
 -- AUTO_INCREMENT cho bảng `promotion`
@@ -708,13 +718,13 @@ ALTER TABLE `promotion`
 -- AUTO_INCREMENT cho bảng `reservation`
 --
 ALTER TABLE `reservation`
-  MODIFY `reservationId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `reservationId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=163;
 
 --
 -- AUTO_INCREMENT cho bảng `service_table`
 --
 ALTER TABLE `service_table`
-  MODIFY `tableId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `tableId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT cho bảng `voucher`

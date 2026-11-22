@@ -1,9 +1,4 @@
 <?php
-if (!defined('ADMIN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
-
 if (empty($_SESSION['admin_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -21,7 +16,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 <div class="page-title">
     <div>
         <h1 class="page-title__heading">Quản lý bàn</h1>
-        <p class="page-title__desc">Quản lý sơ đồ bàn, trạng thái và xếp khách theo thời gian thực.</p>
+        <p class="page-title__desc">Quản lý sơ đồ bàn, đặt trước và theo dõi bàn đang phục vụ từ đơn hàng.</p>
     </div>
     <div class="page-title__actions">
         <div class="view-toggle">
@@ -140,8 +135,16 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                     $id = (int)$table['tableId'];
                     $status = $table['status'];
                     $statusLower = statusClass($status);
-                    $zone = $areaInfo['slug']; ?>
-                    <div class="table-card table-card--<?= h($statusLower) ?>" data-id="<?= $id ?>" data-zone="<?= h($zone) ?>" data-area="<?= h($table['area']) ?>" data-status="<?= h($statusLower) ?>" data-capacity="<?= (int)$table['capacity'] ?>">
+                    $zone = $areaInfo['slug'];
+                    $activeOrderCode = (string)($table['activeOrderCode'] ?? '');
+                    $activeOrderTotal = (float)($table['activeOrderTotal'] ?? 0); ?>
+                    <div class="table-card table-card--<?= h($statusLower) ?>"
+                        data-id="<?= $id ?>"
+                        data-zone="<?= h($zone) ?>"
+                        data-area="<?= h($table['area']) ?>"
+                        data-status="<?= h($statusLower) ?>"
+                        data-capacity="<?= (int)$table['capacity'] ?>"
+                        data-active-order="<?= h($activeOrderCode) ?>">
                         <div class="table-card__header"><span class="table-card__number"><?= h($table['tableNumber']) ?></span>
                             <div class="table-card__status-dot"></div>
                         </div>
@@ -150,13 +153,21 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <span class="table-card__capacity"><i class="bx bx-user"></i> <?= (int)$table['capacity'] ?> người</span>
                             <span class="table-card__status-text"><?= h(statusText($status)) ?></span>
                         </div>
+                        <?php if ($activeOrderCode !== ''): ?>
+                            <div class="table-card__time">
+                                <i class="bx bx-receipt"></i>
+                                <span><?= h($activeOrderCode) ?> · <?= number_format($activeOrderTotal, 0, ',', '.') ?>đ</span>
+                            </div>
+                        <?php endif; ?>
                         <div class="table-card__actions">
                             <?php if ($status === 'AVAILABLE'): ?>
-                                <button class="table-card__btn table-card__btn--seat" onclick="seatGuest(<?= $id ?>)"><i class="bx bx-user-plus"></i> Xếp khách</button>
-                            <?php elseif ($status === 'OCCUPIED'): ?>
-                                <button class="table-card__btn table-card__btn--bill" onclick="billTable(<?= $id ?>)"><i class="bx bx-receipt"></i> Thanh toán</button>
+                                <button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(<?= $id ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
+                            <?php elseif ($status === 'RESERVED'): ?>
+                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
+                            <?php elseif ($activeOrderCode !== ''): ?>
+                                <a class="table-card__btn table-card__btn--bill" href="index.php?page=orders&amp;view=<?= urlencode($activeOrderCode) ?>"><i class="bx bx-receipt"></i> Xem / Thanh toán</a>
                             <?php else: ?>
-                                <button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(<?= $id ?>, 'OCCUPIED')"><i class="bx bx-log-in-circle"></i> Check-in</button>
+                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Mở bàn trống</button>
                             <?php endif; ?>
                             <button class="table-card__btn table-card__btn--more" onclick="toggleMenu(<?= $id ?>)"><i class="bx bx-dots-vertical-rounded"></i></button>
                         </div>
@@ -164,12 +175,16 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <button onclick="editTable(<?= $id ?>)"><i class="bx bx-edit-alt"></i> Chỉnh sửa</button>
                             <?php if ($status === 'AVAILABLE'): ?>
                                 <button onclick="changeStatus(<?= $id ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
-                            <?php elseif ($status === 'OCCUPIED'): ?>
-                                <button onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Trả bàn</button>
-                            <?php else: ?>
+                            <?php elseif ($status === 'RESERVED'): ?>
                                 <button onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
+                            <?php elseif ($activeOrderCode !== ''): ?>
+                                <button onclick="window.location.href='index.php?page=orders&view=<?= h($activeOrderCode) ?>'"><i class="bx bx-receipt"></i> Xem đơn <?= h($activeOrderCode) ?></button>
+                            <?php else: ?>
+                                <button onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Trả về trống</button>
                             <?php endif; ?>
-                            <button class="table-card__menu-danger" onclick="deleteTable(<?= $id ?>)"><i class="bx bx-trash"></i> Xóa bàn</button>
+                            <?php if ($activeOrderCode === ''): ?>
+                                <button class="table-card__menu-danger" onclick="deleteTable(<?= $id ?>)"><i class="bx bx-trash"></i> Xóa bàn</button>
+                            <?php endif; ?>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -197,22 +212,35 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <th>KHU VỰC</th>
                         <th>SỨC CHỨA</th>
                         <th>TRẠNG THÁI</th>
-                        <th>THỜI GIAN SỬ DỤNG</th>
-                        <th>GHI CHÚ</th>
+                        <th>THỜI GIAN MỞ ĐƠN</th>
+                        <th>ĐƠN HÀNG ĐANG MỞ</th>
                         <th>HÀNH ĐỘNG</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($tables as $table): ?>
-                        <tr data-id="<?= (int)$table['tableId'] ?>">
+                    <?php foreach ($tables as $table):
+                        $listTid = (int)$table['tableId'];
+                        $listOrderCode = (string)($table['activeOrderCode'] ?? '');
+                        $listOrderDate = !empty($table['activeOrderDate']) ? date('H:i d/m/Y', strtotime($table['activeOrderDate'])) : '—';
+                        $listOrderInfo = $listOrderCode !== ''
+                            ? $listOrderCode . ' · ' . number_format((float)$table['activeOrderTotal'], 0, ',', '.') . 'đ'
+                            : '—';
+                    ?>
+                        <tr data-id="<?= $listTid ?>">
                             <td><input type="checkbox"></td>
                             <td><strong><?= h($table['tableNumber']) ?></strong></td>
                             <td><span class="zone-tag"><?= h($table['area']) ?></span></td>
                             <td><?= (int)$table['capacity'] ?> người</td>
                             <td><span class="status-badge status-badge--<?= h(statusClass($table['status'])) ?>"><?= h(statusText($table['status'])) ?></span></td>
-                            <td>—</td>
-                            <td>—</td>
-                            <td><button type="button" class="table-card__btn" onclick="editTable(<?= (int)$table['tableId'] ?>)">Chỉnh sửa</button></td>
+                            <td><?= h($listOrderDate) ?></td>
+                            <td>
+                                <?php if ($listOrderCode !== ''): ?>
+                                    <a href="index.php?page=orders&amp;view=<?= urlencode($listOrderCode) ?>" style="color:var(--primary-400);font-weight:600;"><?= h($listOrderInfo) ?></a>
+                                <?php else: ?>
+                                    —
+                                <?php endif; ?>
+                            </td>
+                            <td><button type="button" class="table-card__btn" onclick="editTable(<?= $listTid ?>)">Chỉnh sửa</button></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -224,7 +252,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 <!-- XEM NHANH BÀN TRỐNG -->
 <div class="quick-available" id="quickAvailable">
     <div class="quick-available__header">
-        <h3><i class="bx bx-check-circle"></i> Xem nhanh bàn trống — Sẵn sàng xếp khách</h3>
+        <h3><i class="bx bx-check-circle"></i> Xem nhanh bàn trống — Nhấp để đặt trước nhanh</h3>
         <button class="quick-available__toggle" id="toggleQuickView" type="button">
             <i class="bx bx-chevron-up"></i>
         </button>
@@ -258,7 +286,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <th>SỐ ĐIỆN THOẠI</th>
                         <th>NGÀY & GIỜ HẸN</th>
                         <th>SỐ KHÁCH</th>
-                        <th>BÀN / KHU VỰC</th>
                         <th>CHI NHÁNH</th>
                         <th>GHI CHÚ</th>
                         <th>TRẠNG THÁI</th>
@@ -268,7 +295,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 <tbody>
                     <?php if (empty($reservations)): ?>
                         <tr>
-                            <td colspan="10" class="res-empty-state">
+                            <td colspan="9" class="res-empty-state">
                                 <i class="bx bx-calendar-x"></i>
                                 Chưa có lịch hẹn đặt bàn nào trong hệ thống.
                             </td>
@@ -279,7 +306,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             $resStatus = strtoupper(trim((string)$res['status']));
                             $formattedDate = !empty($res['reservationDate']) ? date('d/m/Y', strtotime($res['reservationDate'])) : '—';
                             $formattedTime = !empty($res['reservationTime']) ? date('H:i', strtotime($res['reservationTime'])) : '—';
-                            $assignedTable = !empty($res['tableNumber']) ? ('<span class="res-table-assigned">Bàn ' . h($res['tableNumber']) . ($res['area'] ? ' (' . h($res['area']) . ')' : '') . '</span>') : '<span class="res-table-unassigned">Chưa xếp bàn</span>';
                         ?>
                             <tr id="res-row-<?= $resId ?>">
                                 <td><strong>#<?= $resId ?></strong></td>
@@ -295,7 +321,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                     <div class="res-datetime__time"><i class="bx bx-time"></i> <?= $formattedTime ?></div>
                                 </td>
                                 <td><?= (int)$res['guestCount'] ?> khách</td>
-                                <td><?= $assignedTable ?></td>
                                 <td><?= h($res['branch'] ?: '—') ?></td>
                                 <td class="res-note-cell">
                                     <?= !empty($res['note']) ? h($res['note']) : '<span class="text-muted-action">—</span>' ?>
@@ -369,7 +394,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <i class="bx bx-map"></i>
                             <select class="modal-form__input" id="inputZone" required>
                                 <option value="">Chọn khu vực</option>
-                                <?php foreach (array_keys($areaGroups) as $areaOption): ?>
+                                <?php foreach (array_unique(array_merge(array_keys($areaMap), array_keys($areaGroups))) as $areaOption): ?>
                                     <option value="<?= h($areaOption) ?>"><?= h($areaOption) ?></option>
                                 <?php endforeach; ?>
                             </select>
@@ -381,9 +406,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <i class="bx bx-info-circle"></i>
                             <select class="modal-form__input" id="inputStatus">
                                 <option value="available">Trống</option>
-                                <option value="occupied">Đang phục vụ</option>
                                 <option value="reserved">Đã đặt trước</option>
-
                             </select>
                         </div>
                     </div>
@@ -402,45 +425,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             <button class="btn btn--ghost" id="btnCancelTable" type="button">Hủy bỏ</button>
             <button class="btn btn--primary" type="submit" form="tableForm">
                 <i class="bx bx-save"></i> Lưu bàn
-            </button>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: XẾP KHÁCH -->
-<div class="modal-overlay" id="seatModal">
-    <div class="modal modal--sm">
-        <div class="modal__header">
-            <h2 class="modal__title"><i class="bx bx-user-plus"></i> Xếp khách vào bàn</h2>
-            <button class="modal__close" id="btnCloseSeat" type="button"><i class="bx bx-x"></i></button>
-        </div>
-        <div class="modal__body">
-            <div class="seat-info" id="seatInfo">
-                <!-- Thông tin bàn sẽ hiện ở đây -->
-            </div>
-            <form class="modal-form" id="seatForm">
-                <div class="modal-form__group">
-                    <label class="modal-form__label">Số khách</label>
-                    <div class="modal-form__input-wrapper">
-                        <i class="bx bx-group"></i>
-                        <input type="number" class="modal-form__input" id="inputGuestCount"
-                            placeholder="Số lượng khách" min="1" required>
-                    </div>
-                </div>
-                <div class="modal-form__group">
-                    <label class="modal-form__label">Tên khách (tùy chọn)</label>
-                    <div class="modal-form__input-wrapper">
-                        <i class="bx bx-user"></i>
-                        <input type="text" class="modal-form__input" id="inputGuestName"
-                            placeholder="Nhập tên khách hàng">
-                    </div>
-                </div>
-            </form>
-        </div>
-        <div class="modal__footer">
-            <button class="btn btn--ghost" id="btnCancelSeat" type="button">Hủy</button>
-            <button class="btn btn--primary" type="submit" form="seatForm">
-                <i class="bx bx-check"></i> Xác nhận xếp khách
             </button>
         </div>
     </div>
@@ -618,28 +602,46 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
 
     function updateCardActions(card, status) {
         const actionsDiv = card.querySelector('.table-card__actions');
+        const menuDiv = document.getElementById(`menu-${card.dataset.id}`);
         const id = card.dataset.id;
+        const activeOrder = card.dataset.activeOrder || '';
         let html = '';
 
         if (status === 'available') {
-            html = `<button class="table-card__btn table-card__btn--seat" onclick="seatGuest(${id})"><i class="bx bx-user-plus"></i> Xếp khách</button>`;
-            // Xóa time nếu có
+            html = `<button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(${id}, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>`;
             const timeEl = card.querySelector('.table-card__time');
             if (timeEl) timeEl.remove();
             const resEl = card.querySelector('.table-card__reserved-info');
             if (resEl) resEl.remove();
-        } else if (status === 'occupied') {
-            html = `<button class="table-card__btn table-card__btn--bill" onclick="billTable(${id})"><i class="bx bx-receipt"></i> Thanh toán</button>`;
         } else if (status === 'reserved') {
-            html = `<button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(${id}, 'occupied')"><i class="bx bx-log-in-circle"></i> Check-in</button>`;
-        } else if (status === 'maintenance') {
-            html = `<button class="table-card__btn table-card__btn--restore" onclick="changeStatus(${id}, 'available')"><i class="bx bx-check"></i> Hoàn tất</button>`;
-            const timeEl = card.querySelector('.table-card__time');
-            if (timeEl) timeEl.remove();
+            html = `<button class="table-card__btn table-card__btn--restore" onclick="changeStatus(${id}, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>`;
+        } else if (status === 'occupied') {
+            if (activeOrder) {
+                html = `<a class="table-card__btn table-card__btn--bill" href="index.php?page=orders&view=${encodeURIComponent(activeOrder)}"><i class="bx bx-receipt"></i> Xem / Thanh toán</a>`;
+            } else {
+                html = `<button class="table-card__btn table-card__btn--restore" onclick="changeStatus(${id}, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Mở bàn trống</button>`;
+            }
         }
 
         html += `<button class="table-card__btn table-card__btn--more" onclick="toggleMenu(${id})"><i class="bx bx-dots-vertical-rounded"></i></button>`;
         actionsDiv.innerHTML = html;
+
+        if (menuDiv) {
+            let menuHtml = `<button onclick="editTable(${id})"><i class="bx bx-edit-alt"></i> Chỉnh sửa</button>`;
+            if (status === 'available') {
+                menuHtml += `<button onclick="changeStatus(${id}, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>`;
+            } else if (status === 'reserved') {
+                menuHtml += `<button onclick="changeStatus(${id}, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>`;
+            } else if (activeOrder) {
+                menuHtml += `<button onclick="window.location.href='index.php?page=orders&view=${encodeURIComponent(activeOrder)}'"><i class="bx bx-receipt"></i> Xem đơn ${activeOrder}</button>`;
+            } else {
+                menuHtml += `<button onclick="changeStatus(${id}, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Trả về trống</button>`;
+            }
+            if (!activeOrder) {
+                menuHtml += `<button class="table-card__menu-danger" onclick="deleteTable(${id})"><i class="bx bx-trash"></i> Xóa bàn</button>`;
+            }
+            menuDiv.innerHTML = menuHtml;
+        }
     }
 
     // ============================
@@ -697,13 +699,13 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 'tang2-rieng': 'T2 - P.Riêng'
             };
             html += `
-                    <div class="quick-item" onclick="seatGuest(${card.dataset.id})">
+                    <div class="quick-item" onclick="changeStatus(${card.dataset.id}, 'RESERVED')" title="Chuyển bàn sang Đã đặt trước">
                         <div class="quick-item__name">${name}</div>
                         <div class="quick-item__meta">
                             <span><i class="bx bx-user"></i> ${cap}</span>
                             <span><i class="bx bx-map"></i> ${zoneLabels[zone] || zone}</span>
                         </div>
-                        <button class="quick-item__btn"><i class="bx bx-user-plus"></i></button>
+                        <button type="button" class="quick-item__btn" title="Đặt trước"><i class="bx bx-calendar-check"></i></button>
                     </div>`;
         });
         grid.innerHTML = html;
@@ -726,6 +728,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
     const btnAddTable = document.getElementById('btnAddTable');
     const btnCloseModal = document.getElementById('btnCloseModal');
     const btnCancelTable = document.getElementById('btnCancelTable');
+    const inputStatusEl = document.getElementById('inputStatus');
+    let editingHasActiveOrder = false;
 
     function openTableModal(title = 'Thêm bàn mới') {
         document.getElementById('modalTitle').textContent = title;
@@ -737,10 +741,15 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         tableModal.classList.remove('active');
         document.body.style.overflow = '';
         document.getElementById('tableForm').reset();
+        editingHasActiveOrder = false;
+        inputStatusEl.disabled = false;
     }
 
     btnAddTable.addEventListener('click', () => {
         document.getElementById('inputTableId').value = '';
+        editingHasActiveOrder = false;
+        inputStatusEl.disabled = false;
+        inputStatusEl.value = 'available';
         openTableModal();
     });
     btnCloseModal.addEventListener('click', closeTableModal);
@@ -752,61 +761,22 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
     function editTable(id) {
         const card = document.querySelector(`.table-card[data-id="${id}"]`);
         if (!card) return;
+        const currentStatus = (card.dataset.status || 'available').toLowerCase();
+        editingHasActiveOrder = Boolean(card.dataset.activeOrder);
         document.getElementById('inputTableId').value = id;
         document.getElementById('inputTableName').value = card.querySelector('.table-card__number').textContent;
         document.getElementById('inputCapacity').value = card.dataset.capacity;
         document.getElementById('inputZone').value = card.dataset.area;
-        document.getElementById('inputStatus').value = (card.dataset.status || 'available').toLowerCase();
+        if (editingHasActiveOrder) {
+            inputStatusEl.value = 'available';
+            inputStatusEl.disabled = true;
+        } else {
+            inputStatusEl.disabled = false;
+            inputStatusEl.value = (currentStatus === 'reserved') ? 'reserved' : 'available';
+        }
         openTableModal('Chỉnh sửa bàn');
-        // Đóng dropdown
         document.querySelectorAll('.table-card__menu.active').forEach(m => m.classList.remove('active'));
     }
-
-    // ============================
-    //  MODAL: XẾP KHÁCH
-    // ============================
-    const seatModal = document.getElementById('seatModal');
-    const btnCloseSeat = document.getElementById('btnCloseSeat');
-    const btnCancelSeat = document.getElementById('btnCancelSeat');
-
-    function seatGuest(id) {
-        const card = document.querySelector(`.table-card[data-id="${id}"]`);
-        if (!card) return;
-        const name = card.querySelector('.table-card__number').textContent;
-        const cap = card.dataset.capacity;
-        document.getElementById('seatInfo').innerHTML = `
-                <div class="seat-info__card">
-                    <i class="bx bx-chair"></i>
-                    <div>
-                        <strong>${name}</strong>
-                        <span>Sức chứa: ${cap} người</span>
-                    </div>
-                </div>`;
-        document.getElementById('inputGuestCount').max = cap;
-        seatModal.dataset.tableId = id;
-        seatModal.classList.add('active');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeSeatModal() {
-        seatModal.classList.remove('active');
-        document.body.style.overflow = '';
-        document.getElementById('seatForm').reset();
-    }
-
-    btnCloseSeat.addEventListener('click', closeSeatModal);
-    btnCancelSeat.addEventListener('click', closeSeatModal);
-    seatModal.addEventListener('click', (e) => {
-        if (e.target === seatModal) closeSeatModal();
-    });
-
-    document.getElementById('seatForm').addEventListener('submit', (e) => {
-        e.preventDefault();
-        const id = seatModal.dataset.tableId;
-        changeStatus(id, 'OCCUPIED');
-        closeSeatModal();
-        showToast('Đã xếp khách thành công!', 'success');
-    });
 
     // ============================
     //  XÓA BÀN
@@ -829,13 +799,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             showToast(error.message, 'error');
         }
         document.querySelectorAll('.table-card__menu.active').forEach(m => m.classList.remove('active'));
-    }
-
-    // ============================
-    //  THANH TOÁN (placeholder)
-    // ============================
-    function billTable(id) {
-        showToast(`Chuyển đến trang thanh toán cho bàn #${id}`, 'info');
     }
 
     // ============================
@@ -873,7 +836,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
     }
 
     // ============================
-    //  FORM SUBMIT: THÊM BÀN
+    //  FORM SUBMIT: THÊM / SỬA BÀN
     // ============================
     document.getElementById('tableForm').addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -884,7 +847,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 tableNumber: document.getElementById('inputTableName').value.trim(),
                 capacity: document.getElementById('inputCapacity').value,
                 area: document.getElementById('inputZone').value,
-                status: document.getElementById('inputStatus').value
+                status: editingHasActiveOrder ? 'OCCUPIED' : inputStatusEl.value
             });
             showToast('Đã lưu bàn vào database.', 'success');
             window.location.reload();
@@ -907,14 +870,12 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 id: id
             });
 
-            // Cập nhật badge trạng thái sang "Đã xác nhận"
             const badge = document.getElementById(`res-badge-${id}`);
             if (badge) {
                 badge.className = 'status-badge status-badge--confirmed';
                 badge.textContent = 'Đã xác nhận';
             }
 
-            // Cập nhật cột action: bỏ nút xác nhận, giữ nút hủy
             const actionCell = document.getElementById(`res-action-${id}`);
             if (actionCell) {
                 actionCell.innerHTML = `
@@ -924,11 +885,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </button>
                         </div>
                     `;
-            }
-
-            // Cập nhật trạng thái bàn trên sơ đồ nếu có gán bàn
-            if (result.tableId && result.tableStatus) {
-                applyTableStatusDOM(result.tableId, result.tableStatus);
             }
 
             showToast(result.message || 'Đã xác nhận lịch hẹn thành công!', 'success');
@@ -951,22 +907,15 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 id: id
             });
 
-            // Cập nhật badge trạng thái sang "Đã hủy"
             const badge = document.getElementById(`res-badge-${id}`);
             if (badge) {
                 badge.className = 'status-badge status-badge--cancelled';
                 badge.textContent = 'Đã hủy';
             }
 
-            // Cập nhật cột action
             const actionCell = document.getElementById(`res-action-${id}`);
             if (actionCell) {
                 actionCell.innerHTML = '<span class="text-muted-action">—</span>';
-            }
-
-            // Cập nhật trạng thái bàn trên sơ đồ nếu có gán bàn
-            if (result.tableId && result.tableStatus) {
-                applyTableStatusDOM(result.tableId, result.tableStatus);
             }
 
             showToast(result.message || 'Đã hủy lịch hẹn thành công!', 'success');

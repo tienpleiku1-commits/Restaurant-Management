@@ -1,9 +1,4 @@
 <?php
-if (!defined('ADMIN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
-
 if (empty($_SESSION['admin_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -89,6 +84,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 <select class="toolbar__select" name="role" id="roleFilter" onchange="this.form.submit()">
                     <option value="">Tất cả vai trò</option>
                     <option value="Quản trị" <?= ($filterRole === 'Quản trị') ? 'selected' : '' ?>>Quản trị</option>
+                    <option value="Bếp" <?= ($filterRole === 'Bếp') ? 'selected' : '' ?>>Bếp</option>
+                    <option value="Phục vụ" <?= ($filterRole === 'Phục vụ') ? 'selected' : '' ?>>Phục vụ</option>
                     <option value="Khách hàng" <?= ($filterRole === 'Khách hàng') ? 'selected' : '' ?>>Khách hàng</option>
                 </select>
             </div>
@@ -173,7 +170,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                             <td><?= htmlspecialchars($u['email']) ?></td>
                             <td><?= htmlspecialchars($u['phone']) ?></td>
-                            <td><span class="role-badge role-badge--<?= $u['type'] ?>"><?= htmlspecialchars($u['role']) ?></span></td>
+                            <td><span class="role-badge role-badge--<?= htmlspecialchars($u['roleClass'] ?? $u['type']) ?>"><?= htmlspecialchars($u['role']) ?></span></td>
                             <td><span class="status-badge status-badge--<?= $u['status'] ?>"><?= $u['status'] === 'locked' ? 'Bị khóa' : 'Hoạt động' ?></span></td>
                             <td><?= htmlspecialchars($u['createdAt']) ?></td>
                             <td class="col-right">
@@ -259,6 +256,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <select name="role" id="modalRoleSelect" class="modal-form__input" required onchange="handleRoleChange(this.value)">
                                 <option value="Khách hàng" selected>Khách hàng</option>
                                 <option value="Quản trị">Quản trị</option>
+                                <option value="Bếp">Bếp</option>
+                                <option value="Phục vụ">Phục vụ</option>
                             </select>
                         </div>
                     </div>
@@ -350,6 +349,11 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <div class="modal-form__input-wrapper">
                             <i class="bx bx-shield-quarter"></i>
                             <input type="text" id="editUserRoleName" class="modal-form__input modal-form__input--readonly" readonly>
+                            <select name="role" id="editUserRoleSelect" class="modal-form__input is-hidden" disabled>
+                                <option value="Quản trị">Quản trị</option>
+                                <option value="Bếp">Bếp</option>
+                                <option value="Phục vụ">Phục vụ</option>
+                            </select>
                         </div>
                     </div>
                 </div>
@@ -382,6 +386,22 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <div class="modal-form__input-wrapper">
                             <i class="bx bx-envelope"></i>
                             <input type="email" name="email" id="editEmail" class="modal-form__input">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-form__row">
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Mật khẩu mới (để trống nếu giữ nguyên)</label>
+                        <div class="modal-form__input-wrapper">
+                            <i class="bx bx-lock-alt"></i>
+                            <input type="password" name="password" id="editPassword" class="modal-form__input" placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)" minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Xác nhận mật khẩu mới</label>
+                        <div class="modal-form__input-wrapper">
+                            <i class="bx bx-lock"></i>
+                            <input type="password" name="confirm_password" id="editConfirmPassword" class="modal-form__input" placeholder="Nhập lại mật khẩu mới" minlength="4" autocomplete="new-password">
                         </div>
                     </div>
                 </div>
@@ -474,9 +494,9 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
     function handleRoleChange(role) {
         const groupUsername = document.getElementById('groupUsername');
         const inputUsername = document.getElementById('inputUsername');
-        const isAdmin = role === 'Quản trị' || role === 'admin';
-        groupUsername.classList.toggle('is-hidden', !isAdmin);
-        inputUsername.required = isAdmin;
+        const isStaff = role !== 'Khách hàng';
+        groupUsername.classList.toggle('is-hidden', !isStaff);
+        inputUsername.required = isStaff;
     }
 
     // Kiểm tra khớp mật khẩu khi thêm mới
@@ -515,18 +535,47 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         document.getElementById('editUserId').value = u.id;
         document.getElementById('editUserType').value = u.type;
         document.getElementById('editUserCode').value = u.code;
-        document.getElementById('editUserRoleName').value = u.role;
+        const roleText = document.getElementById('editUserRoleName');
+        const roleSelect = document.getElementById('editUserRoleSelect');
+        roleText.value = u.role;
+        const isStaff = u.type === 'admin';
+        roleText.classList.toggle('is-hidden', isStaff);
+        roleSelect.classList.toggle('is-hidden', !isStaff);
+        roleSelect.disabled = !isStaff;
+        if (isStaff) roleSelect.value = u.role;
         document.getElementById('editFullname').value = u.name;
         document.getElementById('editPhone').value = (u.phone && u.phone !== 'Chưa có SĐT') ? u.phone : '';
         document.getElementById('editUsername').value = u.type === 'admin' ? u.email : '';
-        document.getElementById('editEmail').value = (u.type === 'customer' && u.email !== 'Chưa cập nhật') ? u.email : '';
+        document.getElementById('editEmail').value = (u.type === 'customer' && u.email && u.email !== 'Chưa cập nhật') ? u.email : '';
 
         const isAdmin = u.type === 'admin';
         document.getElementById('editGroupUsername').classList.toggle('is-hidden', !isAdmin);
         document.getElementById('editGroupEmail').classList.toggle('is-hidden', isAdmin);
+        document.getElementById('editUsername').required = isAdmin;
+        document.getElementById('editPassword').value = '';
+        document.getElementById('editConfirmPassword').value = '';
 
         editModal.classList.add('active');
         document.body.style.overflow = 'hidden';
+    }
+
+    const editUserForm = document.getElementById('editUserForm');
+    if (editUserForm) {
+        editUserForm.addEventListener('submit', function(e) {
+            const p1 = document.getElementById('editPassword').value;
+            const p2 = document.getElementById('editConfirmPassword').value;
+            if (p1 !== '' || p2 !== '') {
+                if (p1 !== p2) {
+                    e.preventDefault();
+                    alert('Mật khẩu và xác nhận mật khẩu không khớp!');
+                    return;
+                }
+                if (p1.length < 4) {
+                    e.preventDefault();
+                    alert('Mật khẩu phải có ít nhất 4 ký tự!');
+                }
+            }
+        });
     }
 
     // ==========================================
