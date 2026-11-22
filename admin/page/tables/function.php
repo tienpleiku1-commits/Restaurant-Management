@@ -1,5 +1,4 @@
 <?php
-
 // Lấy đơn hàng đang hoạt động gần nhất của một bàn (nếu có)
 function table_get_active_order($conn, $tableId)
 {

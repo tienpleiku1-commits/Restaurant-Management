@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/function.php';
 
 $message = '';
@@ -14,9 +13,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_add_user'])) {
 
 // Xử lý sửa người dùng
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['btn_edit_user'])) {
-    $ok = user_update($conn, $_POST);
-    $message = $ok ? 'Đã cập nhật người dùng.' : 'Không thể cập nhật người dùng.';
-    $messageType = $ok ? 'success' : 'danger';
+    $result = user_update($conn, $_POST);
+    $message = $result['message'];
+    $messageType = $result['success'] ? 'success' : 'danger';
 }
 
 // Xử lý khóa, mở khóa hoặc xóa người dùng

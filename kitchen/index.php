@@ -46,6 +46,4 @@ if ($page !== 'login') {
     $_SESSION['kitchen_role'] = 'KITCHEN';
 }
 
-define('KITCHEN_ROUTER', true);
-
 require_once __DIR__ . "/page/{$page}/index.php";

@@ -1,5 +1,4 @@
 <?php
-
 // Đổi trạng thái trong Database sang trạng thái giao diện
 function orders_status_to_ui($status) {
 
@@ -138,7 +137,6 @@ function orders_get_items($conn, $orderId) {
             'name'   => $row['foodName'],
             'qty'    => (int)$row['quantity'],
             'price'  => (float)$row['unitPrice'],
-            'note'   => $row['note'] ?? '',
             'status' => orders_item_status_to_ui($row['itemStatus']),
             'unit'   => 'Phần',
             'cat'    => orders_category_key($row['categoryId'])
@@ -730,8 +728,7 @@ function orders_create($conn, $data, $adminId = null) {
             'foodId' => $foodId,
             'qty'    => $qty,
             'price'  => $price,
-            'total'  => $price * $qty,
-            'note'   => substr(trim((string)($dish['note'] ?? '')), 0, 255)
+            'total'  => $price * $qty
         ];
 
         $subtotal += $price * $qty;
@@ -803,20 +800,19 @@ function orders_create($conn, $data, $adminId = null) {
 
         $item = $conn->prepare(
             "INSERT INTO order_items
-             (orderId, foodId, quantity, unitPrice, lineTotal, itemStatus, note)
-             VALUES (?, ?, ?, ?, ?, 'ORDERED', ?)"
+             (orderId, foodId, quantity, unitPrice, lineTotal, itemStatus)
+             VALUES (?, ?, ?, ?, ?, 'ORDERED')"
         );
 
         foreach ($lines as $line) {
 
             $item->bind_param(
-                'iiiiis',
+                'iiiii',
                 $orderId,
                 $line['foodId'],
                 $line['qty'],
                 $line['price'],
-                $line['total'],
-                $line['note']
+                $line['total']
             );
 
             $item->execute();

@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/functions.php';
 
 // Phục vụ chỉ xem và lọc danh sách thực đơn

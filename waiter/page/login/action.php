@@ -1,5 +1,4 @@
 <?php
-
 require_once __DIR__ . '/function.php';
 
 $error       = '';
@@ -12,34 +11,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = waiter_login($conn, $oldUsername, $password);
 
     if ($user) {
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        session_regenerate_id(true);
-        $role = strtoupper(trim((string)($user['role'] ?? 'ADMIN')));
+        $role = strtoupper(trim((string)($user['role'] ?? '')));
 
-        if ($role === 'WAITER') {
+        if ($role !== 'WAITER') {
+            $error = 'Tài khoản không có quyền truy cập khu vực Phục vụ.';
+        } else {
+            if (session_status() === PHP_SESSION_NONE) {
+                session_start();
+            }
+            session_regenerate_id(true);
             $_SESSION['waiter_id']   = (int)$user['adminId'];
             $_SESSION['waiter_name'] = $user['adminName'];
             $_SESSION['waiter_role'] = 'WAITER';
             header('Location: index.php?page=orders');
             exit;
         }
-
-        if ($role === 'KITCHEN') {
-            $_SESSION['kitchen_id']   = (int)$user['adminId'];
-            $_SESSION['kitchen_name'] = $user['adminName'];
-            $_SESSION['kitchen_role'] = 'KITCHEN';
-            header('Location: ../kitchen/index.php?page=orders');
-            exit;
-        }
-
-        $_SESSION['admin_id']   = (int)$user['adminId'];
-        $_SESSION['admin_name'] = $user['adminName'];
-        $_SESSION['admin_role'] = 'ADMIN';
-        header('Location: ../admin/index.php?page=overview');
-        exit;
+    } else {
+        $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
     }
-
-    $error = 'Tên đăng nhập hoặc mật khẩu không đúng.';
 }

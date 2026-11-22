@@ -1,8 +1,4 @@
 <?php
-if (!defined('ADMIN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
 if (empty($_SESSION['admin_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -384,9 +380,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <tr>
                                 <td>
                                     <div class="dish-cell__name"><?= htmlspecialchars($dish['name']) ?></div>
-                                    <?php if (!empty($dish['note'])): ?>
-                                        <div class="dish-cell__note">Ghi chú: <?= htmlspecialchars($dish['note']) ?></div>
-                                    <?php endif; ?>
                                 </td>
                                 <td class="detail-dish-qty"><?= (int)$dish['qty'] ?></td>
                                 <td class="col-right"><?= number_format($dish['price'], 0, ',', '.') ?>đ</td>
@@ -463,6 +456,21 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
      MODAL 2: TẠO ĐƠN HÀNG MỚI (PHP THUẦN - CHỌN BÀN TRỐNG, TRA CỨU SĐT, VOUCHER VÍ)
      ========================================================================== -->
 <?php if ($showCreateModal): ?>
+    <?php
+    $createActionUrl = 'index.php?page=orders&action=create'
+        . (!empty($catFilter) && (int)$catFilter > 0 ? '&cat=' . (int)$catFilter : '');
+    $cartItems       = $cartSummary['items'] ?? [];
+    $cartItemCount   = (int)($cartSummary['itemCount'] ?? 0);
+    $cartSubtotal    = (float)($cartSummary['subtotal'] ?? 0);
+    $cartDiscount    = (float)($cartSummary['discountAmount'] ?? 0);
+    $cartTotal       = (float)($cartSummary['total'] ?? 0);
+    $appliedVoucher  = (string)($cartSummary['voucherCode'] ?? '');
+    $voucherError    = (string)($cartSummary['voucherError'] ?? '');
+    $cartQtyMap      = [];
+    foreach ($cartItems as $ci) {
+        $cartQtyMap[(int)$ci['id']] = (int)$ci['qty'];
+    }
+    ?>
     <div class="modal active" id="newOrderModal">
         <div class="modal__box modal__box--lg">
             <div class="modal__header">
@@ -481,67 +489,157 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <i class="bx bx-error-circle"></i> <?= htmlspecialchars($createError) ?>
                     </div>
                 <?php endif; ?>
+                <?php if (!empty($createNotice)): ?>
+                    <div style="margin-bottom: 14px; padding: 10px 14px; border-radius: 8px; background: var(--green-bg); color: #15803d; border: 1px solid #bbf7d0; font-size: 0.86rem; font-weight: 500;">
+                        <i class="bx bx-check-circle"></i> <?= htmlspecialchars($createNotice) ?>
+                    </div>
+                <?php endif; ?>
 
-                <form method="POST" action="index.php?page=orders&amp;action=create" id="createOrderForm">
+                <form method="POST" action="<?= htmlspecialchars($createActionUrl) ?>" id="createOrderForm">
                     <div class="pos-layout">
-                        <!-- Bên trái: Chọn món ăn -->
+                        <!-- Bên trái: Danh mục (GET) + Bảng chọn món (POST -> $_SESSION cart) -->
                         <div class="pos-menu">
                             <div class="form-group">
-                                <label>Chọn món &amp; nhập số lượng:</label>
+                                <label>Thực đơn món ăn (nhấn <strong>+ Thêm</strong> để đưa vào giỏ):</label>
                             </div>
-                            <div style="max-height: 430px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
+
+                            <?php if (!empty($posCategories)): ?>
+                                <div class="pos-categories">
+                                    <a href="index.php?page=orders&amp;action=create"
+                                        class="pos-cat-btn <?= empty($catFilter) ? 'active' : '' ?>">Tất cả</a>
+                                    <?php foreach ($posCategories as $cat):
+                                        $cid = (int)$cat['categoryId'];
+                                    ?>
+                                        <a href="index.php?page=orders&amp;action=create&amp;cat=<?= $cid ?>"
+                                            class="pos-cat-btn <?= (int)$catFilter === $cid ? 'active' : '' ?>">
+                                            <?= htmlspecialchars($cat['categoryName']) ?>
+                                        </a>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+
+                            <div style="max-height: 410px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;">
                                 <table class="detail-dishes-table" style="margin-top: 0; border: none;">
                                     <thead>
                                         <tr>
                                             <th>MÓN ĂN</th>
                                             <th class="col-right">ĐƠN GIÁ</th>
-                                            <th class="col-center" style="width: 82px;">SL</th>
-                                            <th style="width: 130px;">GHI CHÚ</th>
+                                            <th class="col-center" style="width: 100px;">THAO TÁC</th>
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($dbFoodsPos as $food):
-                                            $fid = (int)$food['id'];
-                                            $fQty = (int)($createForm['qty'][$fid] ?? 0);
-                                            $fNote = (string)($createForm['note'][$fid] ?? '');
-                                        ?>
+                                        <?php if (empty($dbFoodsPos)): ?>
                                             <tr>
-                                                <td><strong><?= htmlspecialchars($food['name']) ?></strong></td>
-                                                <td class="col-right" style="white-space: nowrap; color: var(--primary-400); font-weight: 600;">
-                                                    <?= number_format($food['price'], 0, ',', '.') ?>đ
-                                                </td>
-                                                <td class="col-center">
-                                                    <input type="number" name="qty[<?= $fid ?>]" min="0" max="99"
-                                                        value="<?= $fQty ?>" class="form-control"
-                                                        style="width: 68px; text-align: center; padding: 4px 6px;">
-                                                </td>
-                                                <td>
-                                                    <input type="text" name="note[<?= $fid ?>]"
-                                                        value="<?= htmlspecialchars($fNote) ?>"
-                                                        placeholder="Ít cay..." class="form-control"
-                                                        style="width: 100%; padding: 4px 6px; font-size: 0.78rem;">
+                                                <td colspan="3" style="text-align: center; padding: 24px; color: var(--text3);">
+                                                    Không có món khả dụng trong danh mục này.
                                                 </td>
                                             </tr>
-                                        <?php endforeach; ?>
+                                        <?php else: ?>
+                                            <?php foreach ($dbFoodsPos as $food):
+                                                $fid   = (int)$food['id'];
+                                                $inQty = (int)($cartQtyMap[$fid] ?? 0);
+                                            ?>
+                                                <tr>
+                                                    <td>
+                                                        <strong><?= htmlspecialchars($food['name']) ?></strong>
+                                                        <?php if (!empty($food['categoryName'])): ?>
+                                                            <br><small style="color: var(--text3);"><?= htmlspecialchars($food['categoryName']) ?></small>
+                                                        <?php endif; ?>
+                                                        <?php if ($inQty > 0): ?>
+                                                            <span style="margin-left: 4px; font-size: 0.72rem; font-weight: 700; color: var(--primary-400);">
+                                                                (×<?= $inQty ?>)
+                                                            </span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td class="col-right" style="white-space: nowrap; color: var(--primary-400); font-weight: 600;">
+                                                        <?= number_format($food['price'], 0, ',', '.') ?>đ
+                                                    </td>
+                                                    <td class="col-center">
+                                                        <button type="submit" name="btn_cart_add" value="<?= $fid ?>"
+                                                            class="btn btn--primary btn--sm" formnovalidate>
+                                                            <i class="bx bx-plus"></i> Thêm
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
                                     </tbody>
                                 </table>
                             </div>
                         </div>
 
-                        <!-- Bên phải: Thông tin bàn, khách hàng, voucher -->
+                        <!-- Bên phải: Giỏ hàng Session + Thông tin đơn + Bill Summary -->
                         <div class="pos-order-panel">
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <!-- 1. Giỏ hàng hiện tại -->
+                            <div class="form-group">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                                    <label style="margin: 0;">Giỏ hàng tạm (<?= $cartItemCount ?> phần)</label>
+                                    <?php if (!empty($cartItems)): ?>
+                                        <div style="display: flex; gap: 6px;">
+                                            <button type="submit" name="btn_cart_update_all" value="1"
+                                                class="btn btn--secondary btn--sm" formnovalidate>
+                                                <i class="bx bx-refresh"></i> Cập nhật SL
+                                            </button>
+                                            <button type="submit" name="btn_cart_clear" value="1"
+                                                class="btn btn--ghost btn--sm" style="color: var(--red);" formnovalidate>
+                                                <i class="bx bx-trash"></i> Xóa giỏ
+                                            </button>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="pos-selected-dishes">
+                                    <?php if (empty($cartItems)): ?>
+                                        <p class="pos-empty-note" style="padding: 18px 8px;">
+                                            Chưa có món nào trong giỏ. Nhấn <strong>+ Thêm</strong> ở bảng bên trái.
+                                        </p>
+                                    <?php else: ?>
+                                        <?php foreach ($cartItems as $item):
+                                            $fid = (int)$item['id'];
+                                        ?>
+                                            <div class="pos-selected-item" style="gap: 8px;">
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div class="pos-selected-item__name" style="word-break: break-word;">
+                                                        <?= htmlspecialchars($item['name']) ?>
+                                                    </div>
+                                                    <div class="pos-selected-item__price" style="font-size: 0.76rem;">
+                                                        <?= number_format($item['price'], 0, ',', '.') ?>đ × <?= (int)$item['qty'] ?>
+                                                        = <strong><?= number_format($item['lineTotal'], 0, ',', '.') ?>đ</strong>
+                                                    </div>
+                                                </div>
+                                                <div class="qty-control" style="flex-shrink: 0;">
+                                                    <button type="submit" name="btn_cart_dec" value="<?= $fid ?>"
+                                                        class="qty-btn" title="Giảm 1" formnovalidate>-</button>
+                                                    <input type="number" name="cart_qty[<?= $fid ?>]"
+                                                        value="<?= (int)$item['qty'] ?>" min="0" max="99"
+                                                        class="form-control" aria-label="Số lượng <?= htmlspecialchars($item['name']) ?>"
+                                                        style="width: 48px; text-align: center; padding: 3px 4px; font-size: 0.8rem;">
+                                                    <button type="submit" name="btn_cart_inc" value="<?= $fid ?>"
+                                                        class="qty-btn" title="Tăng 1" formnovalidate>+</button>
+                                                    <button type="submit" name="btn_cart_remove" value="<?= $fid ?>"
+                                                        class="btn btn--ghost btn--sm" style="padding: 2px 6px; color: var(--red);"
+                                                        title="Xóa món" formnovalidate>
+                                                        <i class="bx bx-x"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+
+                            <!-- 2. Hình thức & Bàn (luôn hiển thị, zero-JS) -->
+                            <div class="pos-form-row pos-form-row--even">
                                 <div class="form-group">
                                     <label for="posOrderType">Hình thức gọi món <span>*</span></label>
-                                    <select class="form-control" name="orderType" id="posOrderType"
-                                        onchange="document.getElementById('posTableSelectGroup').style.display = (this.value === 'dinein') ? '' : 'none';">
+                                    <select class="form-control" name="orderType" id="posOrderType">
                                         <option value="dinein" <?= $createForm['orderType'] === 'dinein' ? 'selected' : '' ?>>Ăn tại bàn</option>
                                         <option value="takeaway" <?= $createForm['orderType'] === 'takeaway' ? 'selected' : '' ?>>Mang về</option>
                                     </select>
                                 </div>
 
-                                <div class="form-group" id="posTableSelectGroup" style="<?= $createForm['orderType'] === 'dinein' ? '' : 'display:none;' ?>">
-                                    <label for="posTableSelect">Chọn bàn (chỉ bàn trống) <span>*</span></label>
+                                <div class="form-group" id="posTableSelectGroup">
+                                    <label for="posTableSelect">Chọn bàn (chỉ dùng khi Ăn tại bàn)</label>
                                     <select class="form-control" name="tableId" id="posTableSelect">
                                         <?php if (empty($availableTables)): ?>
                                             <option value="">-- Không còn bàn trống --</option>
@@ -557,7 +655,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                 </div>
                             </div>
 
-                            <!-- Tra cứu khách hàng theo SĐT -->
+                            <!-- 3. Tra cứu khách hàng theo SĐT -->
                             <div class="form-group">
                                 <label for="posCustomerPhone">SĐT khách hàng (để trống = Khách lẻ)</label>
                                 <div style="display: flex; gap: 6px;">
@@ -595,7 +693,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                 <?php endif; ?>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <!-- 4. Số khách & Phương thức thanh toán -->
+                            <div class="pos-form-row pos-form-row--even">
                                 <div class="form-group">
                                     <label for="posCustomerGuests">Số lượng khách</label>
                                     <input type="number" class="form-control" name="guests" id="posCustomerGuests"
@@ -611,13 +710,26 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                 </div>
                             </div>
 
-                            <!-- Voucher chặt theo ví khách hàng -->
+                            <!-- 5. Voucher chặt theo ví khách hàng (Zero-JS submit pills + manual Apply) -->
                             <div class="form-group">
                                 <label for="posVoucherCode">Mã Voucher (chỉ áp dụng voucher đã lưu trong ví khách)</label>
-                                <input type="text" class="form-control" name="voucherCode" id="posVoucherCode"
-                                    value="<?= htmlspecialchars($lookedUpCustomer ? $createForm['voucherCode'] : '') ?>"
-                                    placeholder="<?= $lookedUpCustomer ? 'Nhập mã voucher trong ví...' : 'Tra cứu SĐT thành viên để mở khóa' ?>"
-                                    <?= $lookedUpCustomer ? '' : 'disabled' ?>>
+                                <div style="display: flex; gap: 6px;">
+                                    <input type="text" class="form-control" name="voucherCode" id="posVoucherCode"
+                                        value="<?= htmlspecialchars($lookedUpCustomer ? $createForm['voucherCode'] : '') ?>"
+                                        placeholder="<?= $lookedUpCustomer ? 'Nhập mã voucher trong ví...' : 'Tra cứu SĐT thành viên để mở khóa' ?>"
+                                        style="flex: 1;"
+                                        <?= $lookedUpCustomer ? '' : 'disabled' ?>>
+                                    <?php if ($lookedUpCustomer): ?>
+                                        <button type="submit" name="btn_apply_voucher" value=""
+                                            class="btn btn--secondary btn--sm" formnovalidate>
+                                            Áp dụng
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if ($voucherError !== ''): ?>
+                                    <small style="color: #b91c1c; margin-top: 4px;"><?= htmlspecialchars($voucherError) ?></small>
+                                <?php endif; ?>
 
                                 <?php if ($lookedUpCustomer): ?>
                                     <?php if (!empty($customerVouchers)): ?>
@@ -627,9 +739,11 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                                     ? ('-' . rtrim(rtrim(number_format((float)$cv['discountValue'], 2, '.', ''), '0'), '.') . '%')
                                                     : ('-' . number_format((float)$cv['discountValue'], 0, ',', '.') . 'đ');
                                             ?>
-                                                <button type="button" class="btn btn--secondary btn--sm"
+                                                <button type="submit" name="btn_apply_voucher"
+                                                    value="<?= htmlspecialchars($cv['voucherCode']) ?>"
+                                                    formnovalidate
+                                                    class="btn btn--secondary btn--sm"
                                                     style="font-size: 0.74rem; padding: 4px 8px;"
-                                                    onclick="document.getElementById('posVoucherCode').value='<?= htmlspecialchars($cv['voucherCode']) ?>';"
                                                     title="Đơn tối thiểu <?= number_format((float)$cv['minOrderValue'], 0, ',', '.') ?>đ">
                                                     <strong><?= htmlspecialchars($cv['voucherCode']) ?></strong> (<?= $vLabel ?> · min <?= number_format((float)$cv['minOrderValue'], 0, ',', '.') ?>đ)
                                                 </button>
@@ -639,6 +753,22 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                         <small style="color: var(--text3); margin-top: 4px;">Khách hàng này chưa có voucher khả dụng nào trong ví.</small>
                                     <?php endif; ?>
                                 <?php endif; ?>
+                            </div>
+
+                            <!-- 6. Tóm tắt hóa đơn tạm tính -->
+                            <div class="bill-calculation bill-calculation--compact">
+                                <div class="bill-row">
+                                    <span>Tạm tính:</span>
+                                    <span><?= number_format($cartSubtotal, 0, ',', '.') ?>đ</span>
+                                </div>
+                                <div class="bill-row">
+                                    <span>Giảm giá<?= $appliedVoucher !== '' ? ' (' . htmlspecialchars($appliedVoucher) . ')' : '' ?>:</span>
+                                    <span class="bill-discount-value">-<?= number_format($cartDiscount, 0, ',', '.') ?>đ</span>
+                                </div>
+                                <div class="bill-row bill-row--total bill-row--total-sm">
+                                    <span>TỔNG CỘNG:</span>
+                                    <span><?= number_format($cartTotal, 0, ',', '.') ?>đ</span>
+                                </div>
                             </div>
                         </div>
                     </div>

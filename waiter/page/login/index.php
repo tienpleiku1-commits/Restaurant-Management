@@ -1,8 +1,4 @@
 <?php
-if (!defined('WAITER_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
 require_once __DIR__ . '/action.php';
 ?>
 <!DOCTYPE html>

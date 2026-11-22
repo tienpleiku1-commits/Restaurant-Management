@@ -1,9 +1,4 @@
 <?php
-if (!defined('ADMIN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
-
 if (empty($_SESSION['admin_id'])) {
     header('Location: index.php?page=login');
     exit;

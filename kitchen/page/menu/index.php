@@ -1,8 +1,4 @@
 <?php
-if (!defined('KITCHEN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
 if (empty($_SESSION['kitchen_id'])) {
     header('Location: index.php?page=login');
     exit;

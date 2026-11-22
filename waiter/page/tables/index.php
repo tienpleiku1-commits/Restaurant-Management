@@ -1,9 +1,4 @@
 <?php
-if (!defined('WAITER_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
-
 if (empty($_SESSION['waiter_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -387,16 +382,27 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
     filterCapacity.addEventListener('change', applyFilters);
 
     const statusConfig = {
-        AVAILABLE: { class: 'table-card--available', text: 'Trống' },
-        OCCUPIED:  { class: 'table-card--occupied',  text: 'Đang phục vụ' },
-        RESERVED:  { class: 'table-card--reserved',  text: 'Đã đặt trước' }
+        AVAILABLE: {
+            class: 'table-card--available',
+            text: 'Trống'
+        },
+        OCCUPIED: {
+            class: 'table-card--occupied',
+            text: 'Đang phục vụ'
+        },
+        RESERVED: {
+            class: 'table-card--reserved',
+            text: 'Đã đặt trước'
+        }
     };
 
     async function postTableData(data) {
         const body = new URLSearchParams(data);
         const response = await fetch(window.location.href, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
             body
         });
         const result = await response.json();
@@ -452,7 +458,11 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
         const normalized = String(newStatus).toUpperCase();
         if (!statusConfig[normalized]) return;
         try {
-            await postTableData({ action: 'update_status', id, status: normalized });
+            await postTableData({
+                action: 'update_status',
+                id,
+                status: normalized
+            });
             applyTableStatusDOM(id, normalized);
             showToast('Đã cập nhật trạng thái bàn.', 'success');
         } catch (error) {
@@ -462,7 +472,10 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
 
     function updateStats() {
         const cards = document.querySelectorAll('.table-card');
-        let total = 0, available = 0, occupied = 0, reserved = 0;
+        let total = 0,
+            available = 0,
+            occupied = 0,
+            reserved = 0;
         cards.forEach(card => {
             total++;
             if (card.dataset.status === 'available') available++;
@@ -519,7 +532,11 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = `toast toast--${type}`;
-        const icons = { success: 'bx-check-circle', error: 'bx-error-circle', info: 'bx-info-circle' };
+        const icons = {
+            success: 'bx-check-circle',
+            error: 'bx-error-circle',
+            info: 'bx-info-circle'
+        };
         toast.innerHTML = `<i class="bx ${icons[type] || icons.info}"></i><span>${message}</span>`;
         container.appendChild(toast);
         requestAnimationFrame(() => toast.classList.add('show'));
@@ -532,7 +549,10 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
     async function confirmReservation(id) {
         if (!confirm(`Bạn có chắc chắn muốn xác nhận lịch hẹn #${id} này không?`)) return;
         try {
-            const result = await postTableData({ action: 'confirm_reservation', id });
+            const result = await postTableData({
+                action: 'confirm_reservation',
+                id
+            });
             const badge = document.getElementById(`res-badge-${id}`);
             if (badge) {
                 badge.className = 'status-badge status-badge--confirmed';
@@ -556,7 +576,10 @@ include_once __DIR__ . '/../../../layouts/waiter_header.php';
     async function cancelReservation(id) {
         if (!confirm(`Bạn có chắc chắn muốn hủy lịch hẹn #${id} này không?`)) return;
         try {
-            const result = await postTableData({ action: 'cancel_reservation', id });
+            const result = await postTableData({
+                action: 'cancel_reservation',
+                id
+            });
             const badge = document.getElementById(`res-badge-${id}`);
             if (badge) {
                 badge.className = 'status-badge status-badge--cancelled';

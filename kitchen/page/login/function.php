@@ -1,9 +1,9 @@
 <?php
-
 // Kiểm tra tên đăng nhập và mật khẩu nhân viên
 function kitchen_login($conn, $username, $password)
 {
-    $username = trim($username);
+    $username = trim((string)$username);
+    $password = (string)$password;
 
     if ($username === '' || $password === '') {
         return false;
@@ -19,12 +19,13 @@ function kitchen_login($conn, $username, $password)
     $stmt->execute();
 
     $user = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
     if (!$user) {
         return false;
     }
 
-    $stored = $user['passwordHash'];
-    $valid  = password_verify($password, $stored) || $password === $stored;
+    $stored = (string)($user['passwordHash'] ?? '');
+    $valid  = password_verify($password, $stored);
 
     return $valid ? $user : false;
 }

@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Lấy danh sách món ăn đang hoạt động 
  */

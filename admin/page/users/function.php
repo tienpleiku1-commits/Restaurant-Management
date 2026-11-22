@@ -1,5 +1,4 @@
 <?php
-
 // Vai trò nội bộ: nhãn hiển thị <-> mã lưu trong bảng admin
 function user_staff_roles()
 {
@@ -18,17 +17,20 @@ function user_add($conn, $data)
     $name = trim($data['fullname'] ?? '');
     $phone = trim($data['phone'] ?? '');
     $role = $data['role'] ?? 'Khách hàng';
-    $password = $data['password'] ?? '';
+    $password = (string)($data['password'] ?? '');
+    $confirmPassword = (string)($data['confirm_password'] ?? '');
 
     if ($name === '' || $phone === '' || $password === '') {
         return ['success' => false, 'message' => 'Vui lòng nhập đầy đủ thông tin.'];
     }
-    if ($password !== ($data['confirm_password'] ?? '')) {
+    if (mb_strlen($password, 'UTF-8') < 4) {
+        return ['success' => false, 'message' => 'Mật khẩu phải có ít nhất 4 ký tự.'];
+    }
+    if ($password !== $confirmPassword) {
         return ['success' => false, 'message' => 'Mật khẩu xác nhận không khớp.'];
     }
 
-    // Giữ cách mã hóa mật khẩu hiện tại để tương thích dữ liệu project
-    $hash = md5($password);
+    $hash = password_hash($password, PASSWORD_DEFAULT);
 
     $staffRoles = user_staff_roles();
     if (isset($staffRoles[$role])) {
@@ -36,6 +38,15 @@ function user_add($conn, $data)
         if ($username === '') {
             return ['success' => false, 'message' => 'Vui lòng nhập tên đăng nhập.'];
         }
+        $chk = $conn->prepare('SELECT adminId FROM admin WHERE username = ? LIMIT 1');
+        $chk->bind_param('s', $username);
+        $chk->execute();
+        if ($chk->get_result()->fetch_assoc()) {
+            $chk->close();
+            return ['success' => false, 'message' => 'Tên đăng nhập đã tồn tại.'];
+        }
+        $chk->close();
+
         $roleCode = $staffRoles[$role];
         $stmt = $conn->prepare(
             'INSERT INTO admin(username, passwordHash, adminName, adminPhone, role)
@@ -44,14 +55,21 @@ function user_add($conn, $data)
         $stmt->bind_param('sssss', $username, $hash, $name, $phone, $roleCode);
     } else {
         $email = trim($data['email'] ?? '');
+        $emailParam = ($email !== '') ? $email : null;
         $stmt = $conn->prepare(
             'INSERT INTO customer(customerName, customerPhone, customerEmail, passwordHash)
              VALUES(?, ?, ?, ?)'
         );
-        $stmt->bind_param('ssss', $name, $phone, $email, $hash);
+        $stmt->bind_param('ssss', $name, $phone, $emailParam, $hash);
     }
 
-    $ok = $stmt->execute();
+    try {
+        $ok = $stmt->execute();
+    } catch (mysqli_sql_exception $e) {
+        $ok = false;
+    }
+    $stmt->close();
+
     return [
         'success' => $ok,
         'message' => $ok ? 'Đã thêm người dùng.' : 'Không thể thêm (kiểm tra username, SĐT hoặc email).'
@@ -67,35 +85,85 @@ function user_update($conn, $data)
     $phone = trim($data['phone'] ?? '');
 
     if ($id <= 0 || $name === '' || $phone === '') {
-        return false;
+        return ['success' => false, 'message' => 'Vui lòng nhập đầy đủ thông tin.'];
+    }
+
+    $password = (string)($data['password'] ?? '');
+    $confirmPassword = (string)($data['confirm_password'] ?? '');
+    $newHash = null;
+    if ($password !== '' || $confirmPassword !== '') {
+        if ($password !== $confirmPassword) {
+            return ['success' => false, 'message' => 'Mật khẩu xác nhận không khớp.'];
+        }
+        if (mb_strlen($password, 'UTF-8') < 4) {
+            return ['success' => false, 'message' => 'Mật khẩu phải có ít nhất 4 ký tự.'];
+        }
+        $newHash = password_hash($password, PASSWORD_DEFAULT);
     }
 
     if ($type === 'admin') {
         $username = trim($data['username'] ?? '');
+        if ($username === '') {
+            return ['success' => false, 'message' => 'Vui lòng nhập tên đăng nhập.'];
+        }
         $staffRoles = user_staff_roles();
         $roleCode = $staffRoles[$data['role'] ?? ''] ?? null;
         if ($roleCode === null) {
-            return false;
+            return ['success' => false, 'message' => 'Vai trò không hợp lệ.'];
         }
         // Không cho tự hạ quyền chính tài khoản đang đăng nhập
         if ($id === (int)($_SESSION['admin_id'] ?? 0) && $roleCode !== 'ADMIN') {
-            return false;
+            return ['success' => false, 'message' => 'Không thể tự hạ quyền tài khoản đang đăng nhập.'];
         }
-        $stmt = $conn->prepare(
-            'UPDATE admin SET adminName=?, adminPhone=?, username=?, role=? WHERE adminId=?'
-        );
-        $stmt->bind_param('ssssi', $name, $phone, $username, $roleCode, $id);
+        $chk = $conn->prepare('SELECT adminId FROM admin WHERE username = ? AND adminId <> ? LIMIT 1');
+        $chk->bind_param('si', $username, $id);
+        $chk->execute();
+        if ($chk->get_result()->fetch_assoc()) {
+            $chk->close();
+            return ['success' => false, 'message' => 'Tên đăng nhập đã tồn tại.'];
+        }
+        $chk->close();
+
+        if ($newHash !== null) {
+            $stmt = $conn->prepare(
+                'UPDATE admin SET adminName=?, adminPhone=?, username=?, role=?, passwordHash=? WHERE adminId=?'
+            );
+            $stmt->bind_param('sssssi', $name, $phone, $username, $roleCode, $newHash, $id);
+        } else {
+            $stmt = $conn->prepare(
+                'UPDATE admin SET adminName=?, adminPhone=?, username=?, role=? WHERE adminId=?'
+            );
+            $stmt->bind_param('ssssi', $name, $phone, $username, $roleCode, $id);
+        }
     } elseif ($type === 'customer') {
         $email = trim($data['email'] ?? '');
-        $stmt = $conn->prepare(
-            'UPDATE customer SET customerName=?, customerPhone=?, customerEmail=? WHERE customerId=?'
-        );
-        $stmt->bind_param('sssi', $name, $phone, $email, $id);
+        $emailParam = ($email !== '') ? $email : null;
+        if ($newHash !== null) {
+            $stmt = $conn->prepare(
+                'UPDATE customer SET customerName=?, customerPhone=?, customerEmail=?, passwordHash=? WHERE customerId=?'
+            );
+            $stmt->bind_param('ssssi', $name, $phone, $emailParam, $newHash, $id);
+        } else {
+            $stmt = $conn->prepare(
+                'UPDATE customer SET customerName=?, customerPhone=?, customerEmail=? WHERE customerId=?'
+            );
+            $stmt->bind_param('sssi', $name, $phone, $emailParam, $id);
+        }
     } else {
-        return false;
+        return ['success' => false, 'message' => 'Loại tài khoản không hợp lệ.'];
     }
 
-    return $stmt->execute();
+    try {
+        $ok = $stmt->execute();
+    } catch (mysqli_sql_exception $e) {
+        $ok = false;
+    }
+    $stmt->close();
+
+    return [
+        'success' => $ok,
+        'message' => $ok ? 'Đã cập nhật người dùng.' : 'Không thể cập nhật (kiểm tra tên đăng nhập, SĐT hoặc email).'
+    ];
 }
 
 // Khóa hoặc mở khóa người dùng bằng xóa mềm

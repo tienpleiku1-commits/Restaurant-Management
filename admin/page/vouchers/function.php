@@ -1,5 +1,4 @@
 <?php
-
 // Lấy danh sách voucher (kèm tên chương trình khuyến mãi)
 function voucher_get_all($conn)
 {

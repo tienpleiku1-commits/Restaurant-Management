@@ -1,5 +1,4 @@
 <?php
-
 // Đổi trạng thái trong Database sang trạng thái giao diện
 function orders_status_to_ui($status) {
 
@@ -138,7 +137,6 @@ function orders_get_items($conn, $orderId) {
             'name'   => $row['foodName'],
             'qty'    => (int)$row['quantity'],
             'price'  => (float)$row['unitPrice'],
-            'note'   => $row['note'] ?? '',
             'status' => orders_item_status_to_ui($row['itemStatus']),
             'unit'   => 'Phần',
             'cat'    => orders_category_key($row['categoryId'])
@@ -309,31 +307,74 @@ function orders_get_one($conn, $orderId) {
     return $row ? orders_format_row($conn, $row) : null;
 }
 
-// Lấy danh sách món cho màn hình gọi món (POS)
-function orders_get_foods_pos($conn) {
+// Lấy danh sách danh mục món ăn đang hoạt động cho POS
+function orders_get_categories_pos($conn) {
 
-    $sql = "SELECT foodId, foodName, foodPrice, foodDiscount, categoryId
-            FROM food
+    $sql = "SELECT categoryId, categoryName
+            FROM category
             WHERE isDeleted = 0
-            AND foodStatus = 'AVAILABLE'
-            ORDER BY foodId ASC";
+            ORDER BY categoryId ASC";
 
     $result = $conn->query($sql);
 
+    $categories = [];
+
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
+            $categories[] = [
+                'categoryId'   => (int)$row['categoryId'],
+                'categoryName' => $row['categoryName']
+            ];
+        }
+    }
+
+    return $categories;
+}
+
+// Lấy danh sách món cho màn hình gọi món (POS)
+function orders_get_foods_pos($conn, $categoryId = 0) {
+
+    $categoryId = (int)$categoryId;
+
+    $sql = "SELECT f.foodId, f.foodName, f.foodPrice, f.foodDiscount, f.categoryId, c.categoryName
+            FROM food f
+            LEFT JOIN category c ON f.categoryId = c.categoryId
+            WHERE f.isDeleted = 0
+            AND f.foodStatus = 'AVAILABLE'";
+
+    if ($categoryId > 0) {
+        $sql .= " AND f.categoryId = ?";
+    }
+
+    $sql .= " ORDER BY f.foodId ASC";
+
+    if ($categoryId > 0) {
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param('i', $categoryId);
+        $stmt->execute();
+        $result = $stmt->get_result();
+    } else {
+        $result = $conn->query($sql);
+    }
+
     $foods = [];
 
-    while ($row = $result->fetch_assoc()) {
+    if ($result) {
+        while ($row = $result->fetch_assoc()) {
 
-        $price = (float)$row['foodPrice']
-               * (1 - (float)$row['foodDiscount'] / 100);
+            $price = (float)$row['foodPrice']
+                   * (1 - (float)$row['foodDiscount'] / 100);
 
-        $foods[] = [
-            'id'    => (int)$row['foodId'],
-            'name'  => $row['foodName'],
-            'price' => round($price),
-            'unit'  => 'Phần',
-            'cat'   => orders_category_key($row['categoryId'])
-        ];
+            $foods[] = [
+                'id'           => (int)$row['foodId'],
+                'name'         => $row['foodName'],
+                'price'        => round($price),
+                'unit'         => 'Phần',
+                'cat'          => orders_category_key($row['categoryId']),
+                'categoryId'   => (int)$row['categoryId'],
+                'categoryName' => $row['categoryName'] ?? ''
+            ];
+        }
     }
 
     return $foods;
@@ -690,7 +731,7 @@ function orders_create($conn, $data, $adminId = null) {
         $customerId = (int)$customer['customerId'];
     }
 
-    $guests  = max(1, (int)($data['guests'] ?? 1));
+    $guests  = min(50, max(1, (int)($data['guests'] ?? 1)));
     $payment = strtoupper(trim((string)($data['paymentMethod'] ?? 'cash')));
 
     if (!in_array($payment, ['CASH', 'TRANSFER', 'CARD'], true)) {
@@ -712,7 +753,7 @@ function orders_create($conn, $data, $adminId = null) {
     foreach ($dishes as $dish) {
 
         $foodId = (int)($dish['id'] ?? 0);
-        $qty    = max(1, (int)($dish['qty'] ?? 1));
+        $qty    = min(99, max(1, (int)($dish['qty'] ?? 1)));
 
         $foodStmt->bind_param('i', $foodId);
         $foodStmt->execute();
@@ -730,8 +771,7 @@ function orders_create($conn, $data, $adminId = null) {
             'foodId' => $foodId,
             'qty'    => $qty,
             'price'  => $price,
-            'total'  => $price * $qty,
-            'note'   => substr(trim((string)($dish['note'] ?? '')), 0, 255)
+            'total'  => $price * $qty
         ];
 
         $subtotal += $price * $qty;
@@ -803,20 +843,19 @@ function orders_create($conn, $data, $adminId = null) {
 
         $item = $conn->prepare(
             "INSERT INTO order_items
-             (orderId, foodId, quantity, unitPrice, lineTotal, itemStatus, note)
-             VALUES (?, ?, ?, ?, ?, 'ORDERED', ?)"
+             (orderId, foodId, quantity, unitPrice, lineTotal, itemStatus)
+             VALUES (?, ?, ?, ?, ?, 'ORDERED')"
         );
 
         foreach ($lines as $line) {
 
             $item->bind_param(
-                'iiiiis',
+                'iiiii',
                 $orderId,
                 $line['foodId'],
                 $line['qty'],
                 $line['price'],
-                $line['total'],
-                $line['note']
+                $line['total']
             );
 
             $item->execute();
@@ -872,4 +911,332 @@ function orders_create($conn, $data, $adminId = null) {
     }
 
     return orders_get_one($conn, $orderId);
+}
+
+// -------------------------------------------------------------
+// GIỎ HÀNG TẠM TRONG $_SESSION (PURE PHP - KHÔNG JAVASCRIPT)
+// -------------------------------------------------------------
+function orders_cart_default_meta() {
+    return [
+        'orderType'     => 'dinein',
+        'tableId'       => 0,
+        'customerPhone' => '',
+        'guests'        => 2,
+        'paymentMethod' => 'cash',
+        'voucherCode'   => '',
+    ];
+}
+
+function orders_cart_init($cartKey) {
+    if (!isset($_SESSION[$cartKey]) || !is_array($_SESSION[$cartKey])) {
+        $_SESSION[$cartKey] = [
+            'items' => [],
+            'meta'  => orders_cart_default_meta(),
+            'flash' => null,
+        ];
+        return;
+    }
+
+    $cleanItems = [];
+    if (!empty($_SESSION[$cartKey]['items']) && is_array($_SESSION[$cartKey]['items'])) {
+        foreach ($_SESSION[$cartKey]['items'] as $fid => $qty) {
+            $fid = (int)$fid;
+            $qty = (int)$qty;
+            if ($fid > 0 && $qty > 0) {
+                $cleanItems[$fid] = min(99, $qty);
+            }
+        }
+    }
+    $_SESSION[$cartKey]['items'] = $cleanItems;
+
+    $defaults = orders_cart_default_meta();
+    $meta = is_array($_SESSION[$cartKey]['meta'] ?? null) ? $_SESSION[$cartKey]['meta'] : [];
+    $_SESSION[$cartKey]['meta'] = [
+        'orderType'     => in_array($meta['orderType'] ?? '', ['dinein', 'takeaway'], true) ? $meta['orderType'] : $defaults['orderType'],
+        'tableId'       => max(0, (int)($meta['tableId'] ?? $defaults['tableId'])),
+        'customerPhone' => trim((string)($meta['customerPhone'] ?? $defaults['customerPhone'])),
+        'guests'        => min(50, max(1, (int)($meta['guests'] ?? $defaults['guests']))),
+        'paymentMethod' => in_array($meta['paymentMethod'] ?? '', ['cash', 'transfer', 'card'], true) ? $meta['paymentMethod'] : $defaults['paymentMethod'],
+        'voucherCode'   => strtoupper(trim((string)($meta['voucherCode'] ?? $defaults['voucherCode']))),
+    ];
+
+    if (!isset($_SESSION[$cartKey]['flash']) || !is_array($_SESSION[$cartKey]['flash'])) {
+        $_SESSION[$cartKey]['flash'] = null;
+    }
+}
+
+function orders_cart_set_flash($cartKey, $type, $message, $context = 'modal') {
+    orders_cart_init($cartKey);
+    $_SESSION[$cartKey]['flash'] = [
+        'type'    => ($type === 'danger') ? 'danger' : 'success',
+        'message' => (string)$message,
+        'context' => ($context === 'list') ? 'list' : 'modal',
+    ];
+}
+
+function orders_cart_consume_flash($cartKey) {
+    orders_cart_init($cartKey);
+    $flash = $_SESSION[$cartKey]['flash'];
+    $_SESSION[$cartKey]['flash'] = null;
+    return is_array($flash) ? $flash : null;
+}
+
+function orders_cart_sync_meta($cartKey, $post) {
+    orders_cart_init($cartKey);
+    $prev = $_SESSION[$cartKey]['meta'];
+
+    $orderType = in_array($post['orderType'] ?? '', ['dinein', 'takeaway'], true)
+        ? $post['orderType']
+        : $prev['orderType'];
+    $tableId = array_key_exists('tableId', $post)
+        ? max(0, (int)$post['tableId'])
+        : $prev['tableId'];
+    $customerPhone = array_key_exists('customerPhone', $post)
+        ? trim((string)$post['customerPhone'])
+        : $prev['customerPhone'];
+    $guests = array_key_exists('guests', $post)
+        ? min(50, max(1, (int)$post['guests']))
+        : $prev['guests'];
+    $paymentMethod = in_array($post['paymentMethod'] ?? '', ['cash', 'transfer', 'card'], true)
+        ? $post['paymentMethod']
+        : $prev['paymentMethod'];
+
+    $prevPhoneNorm = str_replace(' ', '', $prev['customerPhone']);
+    $newPhoneNorm  = str_replace(' ', '', $customerPhone);
+
+    if ($newPhoneNorm === '' || $newPhoneNorm !== $prevPhoneNorm) {
+        $voucherCode = '';
+    } elseif (array_key_exists('voucherCode', $post)) {
+        $voucherCode = strtoupper(trim((string)$post['voucherCode']));
+    } else {
+        $voucherCode = $prev['voucherCode'];
+    }
+
+    $_SESSION[$cartKey]['meta'] = [
+        'orderType'     => $orderType,
+        'tableId'       => $tableId,
+        'customerPhone' => $customerPhone,
+        'guests'        => $guests,
+        'paymentMethod' => $paymentMethod,
+        'voucherCode'   => $voucherCode,
+    ];
+}
+
+function orders_cart_find_available_food($conn, $foodId) {
+    $foodId = (int)$foodId;
+    if ($foodId <= 0) {
+        return null;
+    }
+    $stmt = $conn->prepare(
+        "SELECT foodId, foodName, foodPrice, foodDiscount
+         FROM food
+         WHERE foodId = ? AND isDeleted = 0 AND foodStatus = 'AVAILABLE'
+         LIMIT 1"
+    );
+    $stmt->bind_param('i', $foodId);
+    $stmt->execute();
+    return $stmt->get_result()->fetch_assoc() ?: null;
+}
+
+function orders_cart_add($conn, $cartKey, $foodId, $delta = 1, &$error = '') {
+    orders_cart_init($cartKey);
+    $foodId = (int)$foodId;
+    if (!is_scalar($delta) || preg_match('/^-?\d+$/D', trim((string)$delta)) !== 1) {
+        $error = 'Món ăn hoặc số lượng thêm không hợp lệ (1–99)!';
+        return false;
+    }
+    $delta  = (int)$delta;
+
+    if ($foodId <= 0 || $delta <= 0 || $delta > 99) {
+        $error = 'Món ăn hoặc số lượng thêm không hợp lệ (1–99)!';
+        return false;
+    }
+
+    $food = orders_cart_find_available_food($conn, $foodId);
+    if (!$food) {
+        $error = 'Món ăn không tồn tại hoặc đã ngưng phục vụ!';
+        return false;
+    }
+
+    $curQty = (int)($_SESSION[$cartKey]['items'][$foodId] ?? 0);
+    if ($curQty >= 99) {
+        $error = 'Số lượng tối đa cho mỗi món là 99!';
+        return false;
+    }
+
+    $_SESSION[$cartKey]['items'][$foodId] = min(99, $curQty + $delta);
+    return true;
+}
+
+function orders_cart_inc($conn, $cartKey, $foodId, &$error = '') {
+    return orders_cart_add($conn, $cartKey, $foodId, 1, $error);
+}
+
+function orders_cart_dec($cartKey, $foodId) {
+    orders_cart_init($cartKey);
+    $foodId = (int)$foodId;
+    if ($foodId <= 0 || !isset($_SESSION[$cartKey]['items'][$foodId])) {
+        return false;
+    }
+    $next = (int)$_SESSION[$cartKey]['items'][$foodId] - 1;
+    if ($next <= 0) {
+        unset($_SESSION[$cartKey]['items'][$foodId]);
+    } else {
+        $_SESSION[$cartKey]['items'][$foodId] = $next;
+    }
+    return true;
+}
+
+function orders_cart_update_all($conn, $cartKey, $qtyMap, &$error = '') {
+    orders_cart_init($cartKey);
+    if (!is_array($qtyMap)) {
+        return true;
+    }
+
+    $errors = [];
+    foreach ($qtyMap as $rawFoodId => $rawQty) {
+        $foodId = (int)$rawFoodId;
+        if ($foodId <= 0) {
+            continue;
+        }
+
+        if ($rawQty === '' || $rawQty === null) {
+            continue;
+        }
+        if (!is_scalar($rawQty) || preg_match('/^-?\d+$/D', trim((string)$rawQty)) !== 1) {
+            $errors[] = 'Số lượng món không hợp lệ!';
+            continue;
+        }
+
+        $qty = (int)$rawQty;
+        if ($qty < 0) {
+            $errors[] = 'Số lượng món không được âm (tối thiểu 0 để xóa, tối đa 99)!';
+            continue;
+        }
+
+        if ($qty === 0) {
+            unset($_SESSION[$cartKey]['items'][$foodId]);
+            continue;
+        }
+
+        $qty = min(99, $qty);
+        if (!orders_cart_find_available_food($conn, $foodId)) {
+            unset($_SESSION[$cartKey]['items'][$foodId]);
+            $errors[] = 'Có món ăn đã ngưng phục vụ và được xóa khỏi giỏ!';
+            continue;
+        }
+
+        $_SESSION[$cartKey]['items'][$foodId] = $qty;
+    }
+
+    if (!empty($errors)) {
+        $error = implode(' ', array_unique($errors));
+        return false;
+    }
+    return true;
+}
+
+function orders_cart_remove($cartKey, $foodId) {
+    orders_cart_init($cartKey);
+    $foodId = (int)$foodId;
+    if ($foodId > 0 && isset($_SESSION[$cartKey]['items'][$foodId])) {
+        unset($_SESSION[$cartKey]['items'][$foodId]);
+        return true;
+    }
+    return false;
+}
+
+function orders_cart_clear($cartKey, $resetMeta = false) {
+    orders_cart_init($cartKey);
+    $_SESSION[$cartKey]['items'] = [];
+    if ($resetMeta) {
+        $_SESSION[$cartKey]['meta'] = orders_cart_default_meta();
+    } else {
+        $_SESSION[$cartKey]['meta']['voucherCode'] = '';
+    }
+}
+
+function orders_cart_build_summary($conn, $cartKey, $lookedUpCustomer = null) {
+    orders_cart_init($cartKey);
+    $rawItems = $_SESSION[$cartKey]['items'];
+
+    $summary = [
+        'items'          => [],
+        'itemCount'      => 0,
+        'lineCount'      => 0,
+        'subtotal'       => 0,
+        'discountAmount' => 0,
+        'total'          => 0,
+        'voucherValid'   => false,
+        'voucherCode'    => '',
+        'voucherError'   => '',
+        'droppedCount'   => 0,
+    ];
+
+    if (!empty($rawItems)) {
+        $ids = array_values(array_filter(array_map('intval', array_keys($rawItems)), function ($id) {
+            return $id > 0;
+        }));
+
+        $foodMap = [];
+        if (!empty($ids)) {
+            $idList = implode(',', $ids);
+            $res = $conn->query(
+                "SELECT foodId, foodName, foodPrice, foodDiscount
+                 FROM food
+                 WHERE foodId IN ($idList)
+                   AND isDeleted = 0
+                   AND foodStatus = 'AVAILABLE'"
+            );
+            if ($res) {
+                while ($row = $res->fetch_assoc()) {
+                    $foodMap[(int)$row['foodId']] = $row;
+                }
+            }
+        }
+
+        foreach ($rawItems as $fid => $qty) {
+            $fid = (int)$fid;
+            $qty = min(99, max(1, (int)$qty));
+            if (!isset($foodMap[$fid])) {
+                unset($_SESSION[$cartKey]['items'][$fid]);
+                $summary['droppedCount']++;
+                continue;
+            }
+            $food      = $foodMap[$fid];
+            $unitPrice = (int)round((float)$food['foodPrice'] * (1 - (float)$food['foodDiscount'] / 100));
+            $lineTotal = $unitPrice * $qty;
+
+            $summary['items'][] = [
+                'id'        => $fid,
+                'name'      => $food['foodName'],
+                'price'     => $unitPrice,
+                'qty'       => $qty,
+                'lineTotal' => $lineTotal,
+                'unit'      => 'Phần',
+            ];
+            $summary['itemCount'] += $qty;
+            $summary['subtotal']  += $lineTotal;
+        }
+        $summary['lineCount'] = count($summary['items']);
+    }
+
+    $voucherCode = strtoupper(trim((string)($_SESSION[$cartKey]['meta']['voucherCode'] ?? '')));
+    if ($voucherCode !== '' && $summary['subtotal'] > 0) {
+        $custId = $lookedUpCustomer ? (int)$lookedUpCustomer['customerId'] : 0;
+        $vCheck = orders_validate_voucher_for_customer($conn, $voucherCode, $custId, $summary['subtotal']);
+        if (is_array($vCheck)) {
+            $summary['voucherValid']   = true;
+            $summary['voucherCode']    = $vCheck['voucherCode'];
+            $summary['discountAmount'] = (int)$vCheck['discountAmount'];
+        } elseif (is_string($vCheck)) {
+            $summary['voucherCode']  = $voucherCode;
+            $summary['voucherError'] = $vCheck;
+        }
+    } elseif ($voucherCode !== '') {
+        $summary['voucherCode'] = $voucherCode;
+    }
+
+    $summary['total'] = max(0, $summary['subtotal'] - $summary['discountAmount']);
+    return $summary;
 }

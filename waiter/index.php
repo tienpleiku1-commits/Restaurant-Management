@@ -15,7 +15,7 @@ $routes = ['orders', 'tables', 'menu', 'login'];
 $page   = $_GET['page'] ?? 'orders';
 
 if ($page === 'logout') {
-    unset($_SESSION['waiter_id'], $_SESSION['waiter_name'], $_SESSION['waiter_role']);
+    unset($_SESSION['waiter_id'], $_SESSION['waiter_name'], $_SESSION['waiter_role'], $_SESSION['waiter_order_cart']);
     header('Location: index.php?page=login');
     exit;
 }
@@ -37,7 +37,7 @@ if ($page !== 'login') {
     }
 
     if (!$waiterRow) {
-        unset($_SESSION['waiter_id'], $_SESSION['waiter_name'], $_SESSION['waiter_role']);
+        unset($_SESSION['waiter_id'], $_SESSION['waiter_name'], $_SESSION['waiter_role'], $_SESSION['waiter_order_cart']);
         header('Location: index.php?page=login');
         exit;
     }
@@ -45,7 +45,5 @@ if ($page !== 'login') {
     $_SESSION['waiter_name'] = $waiterRow['adminName'];
     $_SESSION['waiter_role'] = 'WAITER';
 }
-
-define('WAITER_ROUTER', true);
 
 require_once __DIR__ . "/page/{$page}/index.php";

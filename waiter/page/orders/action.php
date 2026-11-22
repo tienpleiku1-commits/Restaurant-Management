@@ -1,32 +1,53 @@
 <?php
 require_once __DIR__ . '/function.php';
 
+$cartKey = 'waiter_order_cart';
+orders_cart_init($cartKey);
+
 $message          = '';
 $messageType      = 'success';
 $showCreateModal  = (($_GET['action'] ?? '') === 'create');
 $createError      = '';
+$createNotice     = '';
 $lookedUpCustomer = null;
 $customerVouchers = [];
 $phoneNotFound    = false;
 
-$createForm = [
-    'orderType'     => 'dinein',
-    'tableId'       => (int)($_GET['tableId'] ?? 0),
-    'customerPhone' => '',
-    'guests'        => 2,
-    'paymentMethod' => 'cash',
-    'voucherCode'   => '',
-    'qty'           => [],
-    'note'          => [],
-];
-
 $viewOrderCode  = trim((string)($_GET['view'] ?? ''));
 $printOrderCode = trim((string)($_GET['print'] ?? ''));
+$catFilter      = max(0, (int)($_GET['cat'] ?? 0));
+
+$modalParams = ['page' => 'orders', 'action' => 'create'];
+$posCat      = max(0, (int)($_GET['cat'] ?? $_POST['pos_cat'] ?? 0));
+if ($posCat > 0) {
+    $modalParams['cat'] = $posCat;
+}
+$modalRedirectUrl = 'index.php?' . http_build_query($modalParams);
 
 // -------------------------------------------------------------
 // 1. XỬ LÝ FORM POST TRUYỀN THỐNG (PHP THUẦN - KHÔNG AJAX)
 // -------------------------------------------------------------
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $cartPostButtons = [
+        'btn_cart_add',
+        'btn_cart_inc',
+        'btn_cart_dec',
+        'btn_cart_update_all',
+        'btn_cart_remove',
+        'btn_cart_clear',
+        'btn_lookup_customer',
+        'btn_reset_walkin',
+        'btn_apply_voucher',
+        'btn_create_order',
+    ];
+    $isCartPost = false;
+    foreach ($cartPostButtons as $btnKey) {
+        if (isset($_POST[$btnKey])) {
+            $isCartPost = true;
+            break;
+        }
+    }
+
     if (isset($_POST['btn_update_status'])) {
         $orderId = orders_parse_code($_POST['orderId'] ?? '');
         $status  = trim((string)($_POST['status'] ?? ''));
@@ -61,84 +82,157 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         if ($orderId > 0) {
             $viewOrderCode = orders_make_code($orderId);
         }
-    } elseif (isset($_POST['btn_reset_walkin']) || isset($_POST['btn_lookup_customer']) || isset($_POST['btn_create_order'])) {
-        $createForm['orderType']     = in_array($_POST['orderType'] ?? 'dinein', ['dinein', 'takeaway'], true) ? $_POST['orderType'] : 'dinein';
-        $createForm['tableId']       = (int)($_POST['tableId'] ?? 0);
-        $createForm['customerPhone'] = trim((string)($_POST['customerPhone'] ?? ''));
-        $createForm['guests']        = max(1, (int)($_POST['guests'] ?? 2));
-        $createForm['paymentMethod'] = in_array($_POST['paymentMethod'] ?? 'cash', ['cash', 'transfer', 'card'], true) ? $_POST['paymentMethod'] : 'cash';
-        $createForm['voucherCode']   = strtoupper(trim((string)($_POST['voucherCode'] ?? '')));
-        $createForm['qty']           = is_array($_POST['qty'] ?? null) ? $_POST['qty'] : [];
-        $createForm['note']          = is_array($_POST['note'] ?? null) ? $_POST['note'] : [];
+    } elseif ($isCartPost) {
+        orders_cart_sync_meta($cartKey, $_POST);
 
-        if (isset($_POST['btn_reset_walkin'])) {
-            $createForm['customerPhone'] = '';
-            $createForm['voucherCode']   = '';
-            $lookedUpCustomer            = null;
-            $customerVouchers            = [];
-            $phoneNotFound               = false;
-            $showCreateModal             = true;
-        } elseif (isset($_POST['btn_lookup_customer'])) {
-            $showCreateModal = true;
-            if ($createForm['customerPhone'] !== '') {
-                $found = orders_find_customer_by_phone($conn, $createForm['customerPhone']);
-                if ($found) {
-                    $lookedUpCustomer = $found;
-                    $customerVouchers = orders_get_customer_vouchers($conn, (int)$found['customerId']);
-                    $phoneNotFound    = false;
-                } else {
-                    $lookedUpCustomer          = null;
-                    $customerVouchers          = [];
-                    $phoneNotFound             = true;
-                    $createForm['voucherCode'] = '';
-                }
-            } else {
-                $lookedUpCustomer          = null;
-                $customerVouchers          = [];
-                $phoneNotFound             = false;
-                $createForm['voucherCode'] = '';
+        $qtySyncErr = '';
+        $qtySyncOk  = true;
+        if (!isset($_POST['btn_cart_clear']) && isset($_POST['cart_qty']) && is_array($_POST['cart_qty'])) {
+            $qtySyncOk = orders_cart_update_all($conn, $cartKey, $_POST['cart_qty'], $qtySyncErr);
+        }
+
+        if (isset($_POST['btn_cart_add'])) {
+            $foodId = (int)$_POST['btn_cart_add'];
+            $delta  = (isset($_POST['add_qty']) && is_array($_POST['add_qty']) && array_key_exists($foodId, $_POST['add_qty']))
+                ? $_POST['add_qty'][$foodId]
+                : 1;
+            $err    = '';
+            $ok     = orders_cart_add($conn, $cartKey, $foodId, $delta, $err);
+            if (!$ok) {
+                orders_cart_set_flash($cartKey, 'danger', $err, 'modal');
+            } elseif (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
             }
-        } elseif (isset($_POST['btn_create_order'])) {
-            if ($createForm['customerPhone'] !== '') {
-                $found = orders_find_customer_by_phone($conn, $createForm['customerPhone']);
-                if ($found) {
-                    $lookedUpCustomer = $found;
-                    $customerVouchers = orders_get_customer_vouchers($conn, (int)$found['customerId']);
-                } else {
-                    $phoneNotFound = true;
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_cart_inc'])) {
+            $foodId = (int)$_POST['btn_cart_inc'];
+            $err    = '';
+            $ok     = orders_cart_inc($conn, $cartKey, $foodId, $err);
+            if (!$ok) {
+                orders_cart_set_flash($cartKey, 'danger', $err, 'modal');
+            } elseif (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_cart_dec'])) {
+            $foodId = (int)$_POST['btn_cart_dec'];
+            orders_cart_dec($cartKey, $foodId);
+            if (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_cart_update_all'])) {
+            if (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
+            } else {
+                orders_cart_set_flash($cartKey, 'success', 'Đã cập nhật số lượng giỏ hàng!', 'modal');
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_cart_remove'])) {
+            orders_cart_remove($cartKey, (int)$_POST['btn_cart_remove']);
+            if (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_cart_clear'])) {
+            orders_cart_clear($cartKey, false);
+            orders_cart_set_flash($cartKey, 'success', 'Đã xóa toàn bộ món trong giỏ.', 'modal');
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_reset_walkin'])) {
+            $_SESSION[$cartKey]['meta']['customerPhone'] = '';
+            $_SESSION[$cartKey]['meta']['voucherCode']   = '';
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_lookup_customer'])) {
+            $phone = $_SESSION[$cartKey]['meta']['customerPhone'];
+            if ($phone === '') {
+                $_SESSION[$cartKey]['meta']['voucherCode'] = '';
+                orders_cart_set_flash($cartKey, 'danger', 'Vui lòng nhập SĐT khách hàng để tra cứu!', 'modal');
+            } else {
+                $found = orders_find_customer_by_phone($conn, $phone);
+                if (!$found) {
+                    $_SESSION[$cartKey]['meta']['voucherCode'] = '';
                 }
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_apply_voucher'])) {
+            $pillCode = strtoupper(trim((string)$_POST['btn_apply_voucher']));
+            $code     = ($pillCode !== '') ? $pillCode : strtoupper(trim((string)($_POST['voucherCode'] ?? '')));
+            $phone    = $_SESSION[$cartKey]['meta']['customerPhone'];
+
+            if ($code === '') {
+                $_SESSION[$cartKey]['meta']['voucherCode'] = '';
+                orders_cart_set_flash($cartKey, 'success', 'Đã bỏ áp dụng mã voucher.', 'modal');
+            } else {
+                $found = ($phone !== '') ? orders_find_customer_by_phone($conn, $phone) : null;
+                if (!$found) {
+                    $_SESSION[$cartKey]['meta']['voucherCode'] = '';
+                    orders_cart_set_flash($cartKey, 'danger', 'Vui lòng tra cứu khách hàng thành viên trước khi áp dụng voucher!', 'modal');
+                } else {
+                    $_SESSION[$cartKey]['meta']['voucherCode'] = $code;
+                    $sum = orders_cart_build_summary($conn, $cartKey, $found);
+                    if ($sum['subtotal'] > 0 && $sum['voucherError'] !== '') {
+                        orders_cart_set_flash($cartKey, 'danger', $sum['voucherError'], 'modal');
+                    } elseif ($sum['voucherValid']) {
+                        orders_cart_set_flash(
+                            $cartKey,
+                            'success',
+                            'Đã áp dụng voucher ' . $sum['voucherCode'] . ' (-' . number_format($sum['discountAmount'], 0, ',', '.') . 'đ).',
+                            'modal'
+                        );
+                    }
+                }
+            }
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        } elseif (isset($_POST['btn_create_order'])) {
+            if (!$qtySyncOk) {
+                orders_cart_set_flash($cartKey, 'danger', $qtySyncErr, 'modal');
+                header('Location: ' . $modalRedirectUrl);
+                exit;
             }
 
             $dishes = [];
-            foreach ($createForm['qty'] as $foodId => $qVal) {
-                $q = (int)$qVal;
-                if ($q > 0) {
-                    $dishes[] = [
-                        'id'   => (int)$foodId,
-                        'qty'  => $q,
-                        'note' => (string)($createForm['note'][$foodId] ?? ''),
-                    ];
-                }
+            foreach ($_SESSION[$cartKey]['items'] as $fid => $qty) {
+                $dishes[] = [
+                    'id'  => (int)$fid,
+                    'qty' => (int)$qty,
+                ];
             }
 
             $creatorId = !empty($_SESSION['waiter_id']) ? (int)$_SESSION['waiter_id'] : null;
-            $created   = orders_create($conn, [
-                'orderType'     => $createForm['orderType'],
-                'tableId'       => $createForm['tableId'],
-                'customerPhone' => $createForm['customerPhone'],
-                'guests'        => $createForm['guests'],
-                'paymentMethod' => $createForm['paymentMethod'],
-                'voucherCode'   => $createForm['voucherCode'],
-                'dishes'        => $dishes,
-            ], $creatorId);
+            $created   = orders_create($conn, array_merge($_SESSION[$cartKey]['meta'], ['dishes' => $dishes]), $creatorId);
 
             if (is_array($created)) {
-                $message         = 'Tạo đơn hàng ' . $created['id'] . ' thành công!';
-                $messageType     = 'success';
-                $showCreateModal = false;
+                orders_cart_clear($cartKey, true);
+                orders_cart_set_flash($cartKey, 'success', 'Tạo đơn hàng ' . $created['id'] . ' thành công!', 'list');
+                header('Location: index.php?page=orders');
+                exit;
+            }
+
+            orders_cart_set_flash($cartKey, 'danger', (string)$created, 'modal');
+            header('Location: ' . $modalRedirectUrl);
+            exit;
+        }
+    }
+} else {
+    $flash = orders_cart_consume_flash($cartKey);
+    if ($flash !== null) {
+        if ($flash['context'] === 'list') {
+            $message     = $flash['message'];
+            $messageType = $flash['type'];
+        } else {
+            if ($flash['type'] === 'danger') {
+                $createError = $flash['message'];
             } else {
-                $createError     = (string)$created;
-                $showCreateModal = true;
+                $createNotice = $flash['message'];
             }
         }
     }
@@ -253,5 +347,40 @@ if ($printOrderCode !== '') {
     $printOrder = orders_get_one($conn, orders_parse_code($printOrderCode));
 }
 
-$dbFoodsPos      = orders_get_foods_pos($conn);
+$posCategories   = orders_get_categories_pos($conn);
+$dbFoodsPos      = orders_get_foods_pos($conn, $catFilter);
 $availableTables = orders_get_available_tables($conn);
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' && $showCreateModal && isset($_GET['tableId'])) {
+    $reqTableId = (int)$_GET['tableId'];
+    if ($reqTableId > 0) {
+        foreach ($availableTables as $tbl) {
+            if ((int)$tbl['tableId'] === $reqTableId) {
+                $_SESSION[$cartKey]['meta']['orderType'] = 'dinein';
+                $_SESSION[$cartKey]['meta']['tableId']   = $reqTableId;
+                break;
+            }
+        }
+    }
+}
+
+$createForm = $_SESSION[$cartKey]['meta'];
+if ($createForm['customerPhone'] !== '') {
+    $found = orders_find_customer_by_phone($conn, $createForm['customerPhone']);
+    if ($found) {
+        $lookedUpCustomer = $found;
+        $customerVouchers = orders_get_customer_vouchers($conn, (int)$found['customerId']);
+        $phoneNotFound    = false;
+    } else {
+        $lookedUpCustomer = null;
+        $customerVouchers = [];
+        $phoneNotFound    = true;
+        $_SESSION[$cartKey]['meta']['voucherCode'] = '';
+        $createForm['voucherCode'] = '';
+    }
+}
+
+$cartSummary = orders_cart_build_summary($conn, $cartKey, $lookedUpCustomer);
+if ($cartSummary['droppedCount'] > 0 && $createError === '') {
+    $createError = 'Một số món trong giỏ vừa ngưng phục vụ và đã được tự động gỡ bỏ.';
+}

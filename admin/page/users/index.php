@@ -1,9 +1,4 @@
 <?php
-if (!defined('ADMIN_ROUTER')) {
-    http_response_code(403);
-    exit('Không được phép truy cập trực tiếp.');
-}
-
 if (empty($_SESSION['admin_id'])) {
     header('Location: index.php?page=login');
     exit;
@@ -394,6 +389,22 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         </div>
                     </div>
                 </div>
+                <div class="modal-form__row">
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Mật khẩu mới (để trống nếu giữ nguyên)</label>
+                        <div class="modal-form__input-wrapper">
+                            <i class="bx bx-lock-alt"></i>
+                            <input type="password" name="password" id="editPassword" class="modal-form__input" placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)" minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                    <div class="modal-form__group">
+                        <label class="modal-form__label">Xác nhận mật khẩu mới</label>
+                        <div class="modal-form__input-wrapper">
+                            <i class="bx bx-lock"></i>
+                            <input type="password" name="confirm_password" id="editConfirmPassword" class="modal-form__input" placeholder="Nhập lại mật khẩu mới" minlength="4" autocomplete="new-password">
+                        </div>
+                    </div>
+                </div>
             </form>
         </div>
         <div class="modal__footer">
@@ -535,14 +546,36 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         document.getElementById('editFullname').value = u.name;
         document.getElementById('editPhone').value = (u.phone && u.phone !== 'Chưa có SĐT') ? u.phone : '';
         document.getElementById('editUsername').value = u.type === 'admin' ? u.email : '';
-        document.getElementById('editEmail').value = (u.type === 'customer' && u.email !== 'Chưa cập nhật') ? u.email : '';
+        document.getElementById('editEmail').value = (u.type === 'customer' && u.email && u.email !== 'Chưa cập nhật') ? u.email : '';
 
         const isAdmin = u.type === 'admin';
         document.getElementById('editGroupUsername').classList.toggle('is-hidden', !isAdmin);
         document.getElementById('editGroupEmail').classList.toggle('is-hidden', isAdmin);
+        document.getElementById('editUsername').required = isAdmin;
+        document.getElementById('editPassword').value = '';
+        document.getElementById('editConfirmPassword').value = '';
 
         editModal.classList.add('active');
         document.body.style.overflow = 'hidden';
+    }
+
+    const editUserForm = document.getElementById('editUserForm');
+    if (editUserForm) {
+        editUserForm.addEventListener('submit', function(e) {
+            const p1 = document.getElementById('editPassword').value;
+            const p2 = document.getElementById('editConfirmPassword').value;
+            if (p1 !== '' || p2 !== '') {
+                if (p1 !== p2) {
+                    e.preventDefault();
+                    alert('Mật khẩu và xác nhận mật khẩu không khớp!');
+                    return;
+                }
+                if (p1.length < 4) {
+                    e.preventDefault();
+                    alert('Mật khẩu phải có ít nhất 4 ký tự!');
+                }
+            }
+        });
     }
 
     // ==========================================
