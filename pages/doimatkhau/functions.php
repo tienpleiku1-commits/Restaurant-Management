@@ -45,18 +45,12 @@ function customer_change_password(
     }
 
     // Kiểm tra mật khẩu cũ
-    if (!client_verify_password(
-        $oldPassword,
-        $customer['passwordHash'] ?? ''
-    )) {
+    if (!password_verify($oldPassword, (string)($customer['passwordHash'] ?? ''))) {
         return 'Mật khẩu cũ không chính xác.';
     }
 
     // Không cho dùng lại mật khẩu cũ
-    if (client_verify_password(
-        $newPassword,
-        $customer['passwordHash'] ?? ''
-    )) {
+    if (password_verify($newPassword, (string)($customer['passwordHash'] ?? ''))) {
         return 'Mật khẩu mới không được trùng mật khẩu cũ.';
     }
 

@@ -72,16 +72,6 @@ function client_find_customer_for_login($conn, $identifier)
     return $stmt->get_result()->fetch_assoc();
 }
 
-// Xác thực mật khẩu hỗ trợ cả password_hash hiện đại và MD5 từ dữ liệu mẫu
-function client_verify_password($password, $hash)
-{
-    if (empty($hash)) {
-        return false;
-    }
-
-    return password_verify($password, (string)$hash) || hash_equals((string)$hash, md5($password));
-}
-
 // Chuẩn hóa đường dẫn ảnh client (chuyển /public/asset/img/... về img/...)
 function client_asset_url($url, $fallback = 'img/thitbo.png')
 {

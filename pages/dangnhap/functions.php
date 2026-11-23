@@ -10,8 +10,7 @@ function customer_login($conn, $phone, $password)
         return false;
     }
 
-    // Hỗ trợ cả mật khẩu bcrypt (password_hash) và MD5 của dữ liệu mẫu / admin
-    if (!client_verify_password($password, $customer['passwordHash'] ?? '')) {
+    if (!password_verify($password, (string)($customer['passwordHash'] ?? ''))) {
         return false;
     }
 
