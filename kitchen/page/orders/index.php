@@ -118,12 +118,6 @@ include_once __DIR__ . '/../../../layouts/kitchen_header.php';
                 <input type="text" name="search" value="<?= htmlspecialchars($searchKw) ?>" placeholder="Tìm mã đơn, tên khách, số bàn..." />
             </div>
 
-            <select class="toolbar-select" name="type" onchange="this.form.submit()">
-                <option value="all">Tất cả hình thức</option>
-                <option value="dinein" <?= $orderType === 'dinein' ? 'selected' : '' ?>>Ăn tại bàn</option>
-                <option value="takeaway" <?= $orderType === 'takeaway' ? 'selected' : '' ?>>Mang về</option>
-            </select>
-
             <select class="toolbar-select" name="period" onchange="this.form.submit()">
                 <option value="all">Tất cả thời gian</option>
                 <option value="today" <?= $dateFilter === 'today' ? 'selected' : '' ?>>Hôm nay</option>
@@ -133,7 +127,7 @@ include_once __DIR__ . '/../../../layouts/kitchen_header.php';
             </select>
 
             <button type="submit" class="btn btn--secondary btn--sm">Lọc</button>
-            <?php if (!empty($searchKw) || $orderType !== 'all' || $dateFilter !== 'all'): ?>
+            <?php if (!empty($searchKw) || $dateFilter !== 'all'): ?>
                 <a href="index.php?page=orders&amp;status=<?= urlencode($statusFilter) ?>" class="btn btn--ghost btn--sm">Bỏ lọc</a>
             <?php endif; ?>
         </div>
@@ -150,7 +144,7 @@ include_once __DIR__ . '/../../../layouts/kitchen_header.php';
             <thead>
                 <tr>
                     <th>MÃ ĐƠN</th>
-                    <th>BÀN / HÌNH THỨC</th>
+                    <th>BÀN</th>
                     <th>KHÁCH HÀNG</th>
                     <th>MÓN ĂN CẦN CHẾ BIẾN</th>
                     <th>TRẠNG THÁI</th>
@@ -182,7 +176,7 @@ include_once __DIR__ . '/../../../layouts/kitchen_header.php';
                             </td>
                             <td>
                                 <strong><?= htmlspecialchars($o['table']) ?></strong><br>
-                                <small style="color:#666;"><?= htmlspecialchars($o['typeName']) ?> (<?= (int)$o['guests'] ?> khách)</small>
+                                <small style="color:#666;"><?= (int)$o['guests'] ?> khách</small>
                             </td>
                             <td><strong><?= htmlspecialchars($o['customer']) ?></strong></td>
                             <td style="max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="<?= htmlspecialchars($dishesText) ?>">

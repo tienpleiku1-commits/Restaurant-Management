@@ -289,11 +289,10 @@ foreach ($allOrders as $o) {
 // -------------------------------------------------------------
 $statusFilter  = $_GET['status'] ?? 'all';
 $searchKw      = trim((string)($_GET['search'] ?? ''));
-$orderType     = $_GET['type'] ?? 'all';
 $paymentFilter = $_GET['payment'] ?? 'all';
 $dateFilter    = $_GET['period'] ?? 'all';
 
-$filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $searchKw, $orderType, $paymentFilter, $dateFilter) {
+$filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $searchKw, $paymentFilter, $dateFilter) {
     if ($statusFilter !== 'all' && $o['status'] !== $statusFilter) {
         return false;
     }
@@ -302,9 +301,6 @@ $filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $se
         if (strpos($haystack, strtolower($searchKw)) === false) {
             return false;
         }
-    }
-    if ($orderType !== 'all' && $o['type'] !== $orderType) {
-        return false;
     }
     if ($paymentFilter !== 'all' && $o['payment'] !== $paymentFilter) {
         return false;
@@ -328,7 +324,6 @@ $ordersList    = array_slice($filteredOrders, ($currentPage - 1) * $limit, $limi
 $listQueryParams = ['page' => 'orders'];
 if ($statusFilter !== 'all') $listQueryParams['status'] = $statusFilter;
 if ($searchKw !== '') $listQueryParams['search'] = $searchKw;
-if ($orderType !== 'all') $listQueryParams['type'] = $orderType;
 if ($paymentFilter !== 'all') $listQueryParams['payment'] = $paymentFilter;
 if ($dateFilter !== 'all') $listQueryParams['period'] = $dateFilter;
 if ($currentPage > 1) $listQueryParams['p'] = $currentPage;
@@ -356,8 +351,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST' && $showCreateModal && isset($
     if ($reqTableId > 0) {
         foreach ($availableTables as $tbl) {
             if ((int)$tbl['tableId'] === $reqTableId) {
-                $_SESSION[$cartKey]['meta']['orderType'] = 'dinein';
-                $_SESSION[$cartKey]['meta']['tableId']   = $reqTableId;
+                $_SESSION[$cartKey]['meta']['tableId'] = $reqTableId;
                 break;
             }
         }

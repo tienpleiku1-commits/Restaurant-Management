@@ -100,7 +100,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
               <?php
               $orderCode = 'DH-' . str_pad((string)$ord['orderId'], 4, '0', STR_PAD_LEFT);
               $custName  = !empty($ord['customerName']) ? $ord['customerName'] : 'Khách lẻ';
-              $tableName = !empty($ord['tableNumber']) ? 'Bàn ' . $ord['tableNumber'] : 'Mang về';
+              $tableName = !empty($ord['tableNumber']) ? 'Bàn ' . $ord['tableNumber'] : '—';
               $st        = strtoupper(trim($ord['status'] ?? 'OPEN'));
               ?>
               <tr data-search="<?= htmlspecialchars(mb_strtolower($orderCode . ' ' . $custName . ' ' . $tableName, 'UTF-8')) ?>">

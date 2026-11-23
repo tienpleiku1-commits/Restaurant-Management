@@ -81,21 +81,6 @@ function orders_get_period($orderDate) {
     return 'month';
 }
 
-// Nhóm món theo danh mục dùng cho bộ lọc POS
-function orders_category_key($categoryId) {
-
-    $map = [
-        1 => 'beef',
-        2 => 'seafood',
-        3 => 'beef',
-        4 => 'appetizer',
-        5 => 'drink',
-        6 => 'beef'
-    ];
-
-    return $map[(int)$categoryId] ?? 'beef';
-}
-
 // Đổi trạng thái món Database -> giao diện
 function orders_item_status_to_ui($itemStatus) {
 
@@ -138,8 +123,7 @@ function orders_get_items($conn, $orderId) {
             'qty'    => (int)$row['quantity'],
             'price'  => (float)$row['unitPrice'],
             'status' => orders_item_status_to_ui($row['itemStatus']),
-            'unit'   => 'Phần',
-            'cat'    => orders_category_key($row['categoryId'])
+            'unit'   => 'Phần'
         ];
     }
 
@@ -222,18 +206,16 @@ function orders_format_row($conn, $row) {
 
     $hasTable = !empty($row['tableId']);
 
-    $tableShort = $hasTable ? $row['tableNumber'] : 'Mang về';
+    $tableShort = $hasTable ? $row['tableNumber'] : '—';
     $tableFull  = $hasTable
         ? 'Bàn ' . $row['tableNumber'] . (!empty($row['area']) ? ' (' . $row['area'] . ')' : '')
-        : 'Mang về';
+        : '—';
 
     return [
         'rawId'       => (int)$row['orderId'],
         'id'          => orders_make_code($row['orderId']),
         'time'        => date('H:i - d/m/Y', strtotime($row['orderDate'])),
         'period'      => orders_get_period($row['orderDate']),
-        'type'        => $hasTable ? 'dinein' : 'takeaway',
-        'typeName'    => $hasTable ? 'Ăn tại bàn' : 'Mang về',
         'tableId'     => $hasTable ? (int)$row['tableId'] : null,
         'table'       => $tableFull,
         'tableShort'  => $tableShort,
@@ -329,8 +311,7 @@ function orders_get_foods_pos($conn) {
             'id'    => (int)$row['foodId'],
             'name'  => $row['foodName'],
             'price' => round($price),
-            'unit'  => 'Phần',
-            'cat'   => orders_category_key($row['categoryId'])
+            'unit'  => 'Phần'
         ];
     }
 
@@ -633,47 +614,43 @@ function orders_create($conn, $data, $adminId = null) {
         return 'Vui lòng chọn ít nhất 1 món ăn cho đơn hàng!';
     }
 
-    $isDineIn = ($data['orderType'] ?? 'dinein') === 'dinein';
-    $tableId  = null;
+    $tableId    = null;
+    $rawTableId = isset($data['tableId']) ? (int)$data['tableId'] : 0;
+    if ($rawTableId > 0) {
+        $tableId = $rawTableId;
+    } elseif (!empty($data['table'])) {
+        $tableId = orders_find_table($conn, $data['table']);
+    }
 
-    if ($isDineIn) {
-        $rawTableId = isset($data['tableId']) ? (int)$data['tableId'] : 0;
-        if ($rawTableId > 0) {
-            $tableId = $rawTableId;
-        } elseif (!empty($data['table'])) {
-            $tableId = orders_find_table($conn, $data['table']);
-        }
+    if ($tableId === null || $tableId <= 0) {
+        return 'Vui lòng chọn bàn trống cho đơn hàng!';
+    }
 
-        if ($tableId === null || $tableId <= 0) {
-            return 'Vui lòng chọn bàn trống cho đơn ăn tại bàn!';
-        }
+    $tStmt = $conn->prepare(
+        "SELECT tableId, status FROM service_table WHERE tableId = ? AND isDeleted = 0 LIMIT 1"
+    );
+    $tStmt->bind_param('i', $tableId);
+    $tStmt->execute();
+    $tRow = $tStmt->get_result()->fetch_assoc();
 
-        $tStmt = $conn->prepare(
-            "SELECT tableId, status FROM service_table WHERE tableId = ? AND isDeleted = 0 LIMIT 1"
-        );
-        $tStmt->bind_param('i', $tableId);
-        $tStmt->execute();
-        $tRow = $tStmt->get_result()->fetch_assoc();
+    if (!$tRow) {
+        return 'Không tìm thấy bàn đã chọn trong cơ sở dữ liệu!';
+    }
 
-        if (!$tRow) {
-            return 'Không tìm thấy bàn đã chọn trong cơ sở dữ liệu!';
-        }
+    if (strtoupper((string)$tRow['status']) !== 'AVAILABLE') {
+        return 'Bàn đã chọn hiện không ở trạng thái Trống!';
+    }
 
-        if (strtoupper((string)$tRow['status']) !== 'AVAILABLE') {
-            return 'Bàn đã chọn hiện không ở trạng thái Trống!';
-        }
-
-        $aoStmt = $conn->prepare(
-            "SELECT orderId FROM orders
-             WHERE tableId = ?
-               AND status IN ('OPEN', 'PENDING', 'COOKING', 'SERVING', 'PENDING_PAY')
-             LIMIT 1"
-        );
-        $aoStmt->bind_param('i', $tableId);
-        $aoStmt->execute();
-        if ($aoStmt->get_result()->fetch_assoc()) {
-            return 'Bàn đã chọn đang có đơn hàng hoạt động!';
-        }
+    $aoStmt = $conn->prepare(
+        "SELECT orderId FROM orders
+         WHERE tableId = ?
+           AND status IN ('OPEN', 'PENDING', 'COOKING', 'SERVING', 'PENDING_PAY')
+         LIMIT 1"
+    );
+    $aoStmt->bind_param('i', $tableId);
+    $aoStmt->execute();
+    if ($aoStmt->get_result()->fetch_assoc()) {
+        return 'Bàn đã chọn đang có đơn hàng hoạt động!';
     }
 
     // Khách hàng theo SĐT (bắt buộc khớp tài khoản nếu có nhập SĐT; để trống = Khách lẻ)
