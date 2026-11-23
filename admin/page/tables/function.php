@@ -28,7 +28,7 @@ function table_get_active_order($conn, $tableId)
     return $row;
 }
 
-// Lấy danh sách bàn đang hoạt động kèm thông tin đơn hàng đang mở (nếu có)
+// Lấy danh sách bàn đang hoạt động kèm đơn hàng mở và nhãn hiển thị
 function table_get_all($conn)
 {
     $sql = "SELECT * FROM service_table
@@ -37,7 +37,6 @@ function table_get_all($conn)
     $result = $conn->query($sql);
     $tables = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 
-    // Lấy toàn bộ đơn hàng đang hoạt động theo bàn (mới nhất trước)
     $activeByTable = [];
     $orderRes = $conn->query(
         "SELECT o.tableId, o.orderId, o.status, o.totalAmount, o.orderDate, c.customerName
@@ -56,9 +55,21 @@ function table_get_all($conn)
         }
     }
 
+    $statusLabels = [
+        'AVAILABLE' => 'Trống',
+        'OCCUPIED'  => 'Đang phục vụ',
+        'RESERVED'  => 'Đã đặt trước',
+    ];
+
     foreach ($tables as &$table) {
-        $tid = (int)$table['tableId'];
+        $tid    = (int)$table['tableId'];
+        $status = strtoupper((string)($table['status'] ?? 'AVAILABLE'));
         $active = $activeByTable[$tid] ?? null;
+
+        $table['status']      = $status;
+        $table['statusClass'] = strtolower($status);
+        $table['statusLabel'] = $statusLabels[$status] ?? $status;
+
         if ($active) {
             $table['activeOrderId']      = (int)$active['orderId'];
             $table['activeOrderCode']    = 'ORD-' . str_pad((string)$active['orderId'], 4, '0', STR_PAD_LEFT);
@@ -80,7 +91,7 @@ function table_get_all($conn)
     return $tables;
 }
 
-// Lấy danh sách đặt bàn đang chờ hoặc đã xác nhận
+// Lấy danh sách đặt bàn đang chờ hoặc đã xác nhận kèm nhãn hiển thị
 function table_get_reservations($conn)
 {
     $sql = "SELECT * FROM reservation
@@ -88,11 +99,34 @@ function table_get_reservations($conn)
             AND status IN ('PENDING', 'CONFIRMED')
             ORDER BY reservationDate, reservationTime";
     $result = $conn->query($sql);
-    return $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+    $rows   = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
+
+    $resLabels = [
+        'PENDING'   => 'Chờ xác nhận',
+        'CONFIRMED' => 'Đã xác nhận',
+        'CANCELLED' => 'Đã hủy',
+    ];
+    $resClasses = [
+        'PENDING'   => 'pending',
+        'CONFIRMED' => 'confirmed',
+        'CANCELLED' => 'cancelled',
+    ];
+
+    foreach ($rows as &$row) {
+        $status = strtoupper(trim((string)($row['status'] ?? '')));
+        $row['statusUpper']   = $status;
+        $row['statusLabel']   = $resLabels[$status] ?? $status;
+        $row['statusClass']   = $resClasses[$status] ?? 'default';
+        $row['formattedDate'] = !empty($row['reservationDate']) ? date('d/m/Y', strtotime($row['reservationDate'])) : '—';
+        $row['formattedTime'] = !empty($row['reservationTime']) ? date('H:i', strtotime($row['reservationTime'])) : '—';
+    }
+    unset($row);
+
+    return $rows;
 }
 
-// Thêm hoặc cập nhật bàn (không cho tự đặt OCCUPIED hoặc đổi trạng thái khi đang có đơn mở)
-function table_save($conn, $data, $id = 0, &$error = '')
+// Thêm hoặc cập nhật bàn (kiểm tra trùng tên bàn và trạng thái đơn mở)
+function table_save($conn, $data, $id = 0)
 {
     $id       = (int)$id;
     $number   = trim((string)($data['tableNumber'] ?? ''));
@@ -101,21 +135,34 @@ function table_save($conn, $data, $id = 0, &$error = '')
     $status   = strtoupper(trim((string)($data['status'] ?? 'AVAILABLE')));
 
     if ($number === '' || $area === '') {
-        $error = 'Vui lòng nhập đầy đủ số bàn và khu vực.';
-        return false;
+        return ['success' => false, 'message' => 'Vui lòng nhập đầy đủ số bàn và khu vực.'];
+    }
+
+    $dupStmt = $conn->prepare(
+        'SELECT tableId FROM service_table WHERE tableNumber = ? AND tableId <> ? AND isDeleted = 0 LIMIT 1'
+    );
+    $dupStmt->bind_param('si', $number, $id);
+    $dupStmt->execute();
+    if ($dupStmt->get_result()->fetch_assoc()) {
+        return ['success' => false, 'message' => 'Tên / số bàn "' . $number . '" đã tồn tại.'];
     }
 
     if ($id > 0) {
+        $chkStmt = $conn->prepare('SELECT tableId FROM service_table WHERE tableId = ? AND isDeleted = 0 LIMIT 1');
+        $chkStmt->bind_param('i', $id);
+        $chkStmt->execute();
+        if (!$chkStmt->get_result()->fetch_assoc()) {
+            return ['success' => false, 'message' => 'Không tìm thấy bàn cần cập nhật.'];
+        }
+
         $activeOrder = table_get_active_order($conn, $id);
         if ($activeOrder !== null) {
             if ($status !== '' && $status !== 'OCCUPIED') {
-                $error = 'Bàn đang có đơn hàng hoạt động (' . $activeOrder['orderCode'] . '), không thể đổi trạng thái bàn.';
-                return false;
+                return ['success' => false, 'message' => 'Bàn đang có đơn hàng hoạt động (' . $activeOrder['orderCode'] . '), không thể đổi trạng thái bàn.'];
             }
             $status = 'OCCUPIED';
         } elseif (!in_array($status, ['AVAILABLE', 'RESERVED'], true)) {
-            $error = 'Chỉ được chọn trạng thái Trống hoặc Đã đặt trước; trạng thái Đang phục vụ được cập nhật tự động từ đơn hàng.';
-            return false;
+            return ['success' => false, 'message' => 'Chỉ được chọn trạng thái Trống hoặc Đã đặt trước; trạng thái Đang phục vụ được cập nhật tự động từ đơn hàng.'];
         }
 
         $stmt = $conn->prepare(
@@ -126,8 +173,7 @@ function table_save($conn, $data, $id = 0, &$error = '')
         $stmt->bind_param('ssisi', $number, $area, $capacity, $status, $id);
     } else {
         if (!in_array($status, ['AVAILABLE', 'RESERVED'], true)) {
-            $error = 'Chỉ được tạo bàn với trạng thái Trống hoặc Đã đặt trước.';
-            return false;
+            return ['success' => false, 'message' => 'Chỉ được tạo bàn với trạng thái Trống hoặc Đã đặt trước.'];
         }
 
         $stmt = $conn->prepare(
@@ -137,46 +183,43 @@ function table_save($conn, $data, $id = 0, &$error = '')
         $stmt->bind_param('ssis', $number, $area, $capacity, $status);
     }
 
-    if (!$stmt->execute()) {
-        $error = 'Không thể lưu bàn vào cơ sở dữ liệu.';
-        return false;
-    }
-
-    return true;
+    return $stmt->execute()
+        ? ['success' => true, 'message' => 'Đã lưu bàn.']
+        : ['success' => false, 'message' => 'Không thể lưu bàn vào cơ sở dữ liệu.'];
 }
 
-// Cập nhật trạng thái bàn (trên giao diện Bàn chỉ cho phép AVAILABLE <-> RESERVED)
-function table_update_status($conn, $id, $status, &$error = '')
+// Cập nhật trạng thái bàn (chỉ cho phép AVAILABLE <-> RESERVED khi không có đơn mở)
+function table_update_status($conn, $id, $status)
 {
     $id     = (int)$id;
     $status = strtoupper(trim((string)$status));
 
     if ($id <= 0) {
-        $error = 'Mã bàn không hợp lệ.';
-        return false;
+        return ['success' => false, 'message' => 'Mã bàn không hợp lệ.'];
     }
 
     if (!in_array($status, ['AVAILABLE', 'RESERVED'], true)) {
-        $error = 'Trên trang quản lý bàn chỉ cho phép đổi trạng thái giữa Trống và Đã đặt trước. Để mở bàn phục vụ, vui lòng tạo đơn hàng.';
-        return false;
+        return ['success' => false, 'message' => 'Trên trang quản lý bàn chỉ cho phép đổi trạng thái giữa Trống và Đã đặt trước. Để mở bàn phục vụ, vui lòng tạo đơn hàng.'];
+    }
+
+    $chkStmt = $conn->prepare('SELECT tableId FROM service_table WHERE tableId = ? AND isDeleted = 0 LIMIT 1');
+    $chkStmt->bind_param('i', $id);
+    $chkStmt->execute();
+    if (!$chkStmt->get_result()->fetch_assoc()) {
+        return ['success' => false, 'message' => 'Không tìm thấy bàn cần cập nhật.'];
     }
 
     $activeOrder = table_get_active_order($conn, $id);
     if ($activeOrder !== null) {
-        $error = 'Bàn đang có đơn hàng ' . $activeOrder['orderCode'] . ' chưa hoàn tất, không thể đổi trạng thái thủ công.';
-        return false;
+        return ['success' => false, 'message' => 'Bàn đang có đơn hàng ' . $activeOrder['orderCode'] . ' chưa hoàn tất, không thể đổi trạng thái thủ công.'];
     }
 
-    $stmt = $conn->prepare(
-        'UPDATE service_table SET status=? WHERE tableId=? AND isDeleted=0'
-    );
+    $stmt = $conn->prepare('UPDATE service_table SET status=? WHERE tableId=? AND isDeleted=0');
     $stmt->bind_param('si', $status, $id);
-    if (!$stmt->execute()) {
-        $error = 'Không thể cập nhật trạng thái bàn.';
-        return false;
-    }
 
-    return true;
+    return $stmt->execute()
+        ? ['success' => true, 'message' => 'Đã cập nhật trạng thái bàn.']
+        : ['success' => false, 'message' => 'Không thể cập nhật trạng thái bàn.'];
 }
 
 // Xác nhận hoặc hủy đặt bàn
@@ -185,118 +228,48 @@ function table_update_reservation($conn, $id, $status)
     $id     = (int)$id;
     $status = strtoupper(trim((string)$status));
     if ($id <= 0 || !in_array($status, ['CONFIRMED', 'CANCELLED'], true)) {
-        return false;
+        return ['success' => false, 'message' => 'Thông tin lịch hẹn không hợp lệ.'];
     }
-    $stmt = $conn->prepare(
-        'UPDATE reservation SET status=? WHERE reservationId=? AND isDeleted=0'
-    );
+
+    $chkStmt = $conn->prepare('SELECT reservationId FROM reservation WHERE reservationId = ? AND isDeleted = 0 LIMIT 1');
+    $chkStmt->bind_param('i', $id);
+    $chkStmt->execute();
+    if (!$chkStmt->get_result()->fetch_assoc()) {
+        return ['success' => false, 'message' => 'Không tìm thấy lịch hẹn đặt bàn.'];
+    }
+
+    $stmt = $conn->prepare('UPDATE reservation SET status=? WHERE reservationId=? AND isDeleted=0');
     $stmt->bind_param('si', $status, $id);
-    return $stmt->execute();
+
+    if (!$stmt->execute()) {
+        return ['success' => false, 'message' => 'Không thể cập nhật lịch hẹn đặt bàn.'];
+    }
+
+    return [
+        'success' => true,
+        'message' => $status === 'CONFIRMED' ? 'Đã xác nhận đặt bàn.' : 'Đã hủy đặt bàn.',
+    ];
 }
 
 // Xóa mềm bàn (từ chối nếu đang có đơn mở)
-function table_delete($conn, $id, &$error = '')
+function table_delete($conn, $id)
 {
     $id = (int)$id;
     if ($id <= 0) {
-        $error = 'Mã bàn không hợp lệ.';
-        return false;
+        return ['success' => false, 'message' => 'Mã bàn không hợp lệ.'];
     }
 
     $activeOrder = table_get_active_order($conn, $id);
     if ($activeOrder !== null) {
-        $error = 'Không thể xóa bàn đang có đơn hàng ' . $activeOrder['orderCode'] . ' chưa hoàn tất.';
-        return false;
+        return ['success' => false, 'message' => 'Không thể xóa bàn đang có đơn hàng ' . $activeOrder['orderCode'] . ' chưa hoàn tất.'];
     }
 
-    $stmt = $conn->prepare(
-        'UPDATE service_table SET isDeleted=1 WHERE tableId=? AND isDeleted=0'
-    );
+    $stmt = $conn->prepare('UPDATE service_table SET isDeleted=1 WHERE tableId=? AND isDeleted=0');
     $stmt->bind_param('i', $id);
+
     if (!$stmt->execute() || $stmt->affected_rows <= 0) {
-        $error = 'Không tìm thấy bàn cần xóa.';
-        return false;
+        return ['success' => false, 'message' => 'Không tìm thấy bàn cần xóa.'];
     }
 
-    return true;
-}
-
-// Đếm số lượng bàn theo trạng thái
-function table_count_statuses($tables)
-{
-    $counts = ['AVAILABLE' => 0, 'OCCUPIED' => 0, 'RESERVED' => 0];
-    foreach ($tables as $row) {
-        if (isset($counts[$row['status']])) {
-            $counts[$row['status']]++;
-        }
-    }
-    return $counts;
-}
-
-// Bản đồ khu vực hiển thị
-function table_get_area_map()
-{
-    return [
-        'Trong nhà'   => ['slug' => 'tang1-trong', 'label' => 'Tầng 1 - Trong nhà', 'icon' => 'bx-building-house'],
-        'Ngoài trời'  => ['slug' => 'tang1-ngoai', 'label' => 'Tầng 1 - Ngoài trời', 'icon' => 'bx-sun'],
-        'VIP'         => ['slug' => 'tang2-vip',   'label' => 'Tầng 2 - VIP', 'icon' => 'bx-crown'],
-        'Phòng riêng' => ['slug' => 'tang2-rieng', 'label' => 'Tầng 2 - Phòng riêng', 'icon' => 'bx-door-open'],
-    ];
-}
-
-// Nhóm bàn theo khu vực
-function table_group_by_area($tables)
-{
-    $groups = [];
-    foreach ($tables as $table) {
-        $groups[$table['area'] ?: 'Chưa phân khu'][] = $table;
-    }
-    return $groups;
-}
-
-if (!function_exists('h')) {
-    function h($value)
-    {
-        return htmlspecialchars((string)$value, ENT_QUOTES, 'UTF-8');
-    }
-}
-
-if (!function_exists('statusText')) {
-    function statusText($status)
-    {
-        return [
-            'AVAILABLE' => 'Trống',
-            'OCCUPIED'  => 'Đang phục vụ',
-            'RESERVED'  => 'Đã đặt trước',
-        ][$status] ?? $status;
-    }
-}
-
-if (!function_exists('statusClass')) {
-    function statusClass($status)
-    {
-        return strtolower((string)$status);
-    }
-}
-
-if (!function_exists('resStatusText')) {
-    function resStatusText($status)
-    {
-        return [
-            'PENDING'   => 'Chờ xác nhận',
-            'CONFIRMED' => 'Đã xác nhận',
-            'CANCELLED' => 'Đã hủy',
-        ][strtoupper((string)$status)] ?? $status;
-    }
-}
-
-if (!function_exists('resStatusClass')) {
-    function resStatusClass($status)
-    {
-        return [
-            'PENDING'   => 'pending',
-            'CONFIRMED' => 'confirmed',
-            'CANCELLED' => 'cancelled',
-        ][strtoupper((string)$status)] ?? 'default';
-    }
+    return ['success' => true, 'message' => 'Đã xóa bàn.'];
 }

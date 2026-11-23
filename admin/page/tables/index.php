@@ -73,8 +73,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             <label class="toolbar__label">Khu vực:</label>
             <select class="toolbar__select" id="filterZone">
                 <option value="">Tất cả</option>
-                <?php foreach (array_keys($areaGroups) as $areaOption): ?>
-                    <option value="<?= h($areaMap[$areaOption]['slug'] ?? 'khac') ?>"><?= h($areaMap[$areaOption]['label'] ?? $areaOption) ?></option>
+                <?php foreach ($filterAreaOptions as $areaOption): ?>
+                    <option value="<?= $areaOption['slug'] ?>"><?= $areaOption['label'] ?></option>
                 <?php endforeach; ?>
             </select>
         </div>
@@ -117,73 +117,66 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                  GRID VIEW - SƠ ĐỒ BÀN 
             ============================ -->
 <div class="tables-view tables-view--grid active" id="gridView">
-    <?php if (!$tables): ?>
+    <?php if (empty($viewTables)): ?>
         <p class="quick-available__empty">Chưa có bàn nào trong database.</p>
     <?php endif; ?>
-    <?php foreach ($areaGroups as $areaName => $areaTables):
-        $areaInfo = $areaMap[$areaName] ?? ['slug' => 'khac', 'label' => $areaName, 'icon' => 'bx-map']; ?>
+    <?php foreach ($viewAreaGroups as $group): ?>
         <div class="zone-section">
             <div class="zone-section__header">
                 <div class="zone-section__title">
-                    <i class="bx <?= h($areaInfo['icon']) ?>"></i>
-                    <h2><?= h($areaInfo['label']) ?></h2>
-                    <span class="zone-section__count"><?= count($areaTables) ?> bàn</span>
+                    <i class="bx <?= $group['icon'] ?>"></i>
+                    <h2><?= $group['label'] ?></h2>
+                    <span class="zone-section__count"><?= $group['count'] ?> bàn</span>
                 </div>
             </div>
             <div class="tables-grid">
-                <?php foreach ($areaTables as $table):
-                    $id = (int)$table['tableId'];
-                    $status = $table['status'];
-                    $statusLower = statusClass($status);
-                    $zone = $areaInfo['slug'];
-                    $activeOrderCode = (string)($table['activeOrderCode'] ?? '');
-                    $activeOrderTotal = (float)($table['activeOrderTotal'] ?? 0); ?>
-                    <div class="table-card table-card--<?= h($statusLower) ?>"
-                        data-id="<?= $id ?>"
-                        data-zone="<?= h($zone) ?>"
-                        data-area="<?= h($table['area']) ?>"
-                        data-status="<?= h($statusLower) ?>"
-                        data-capacity="<?= (int)$table['capacity'] ?>"
-                        data-active-order="<?= h($activeOrderCode) ?>">
-                        <div class="table-card__header"><span class="table-card__number"><?= h($table['tableNumber']) ?></span>
+                <?php foreach ($group['tables'] as $table): ?>
+                    <div class="table-card table-card--<?= $table['statusClass'] ?>"
+                        data-id="<?= $table['id'] ?>"
+                        data-zone="<?= $table['zone'] ?>"
+                        data-area="<?= $table['area'] ?>"
+                        data-status="<?= $table['statusClass'] ?>"
+                        data-capacity="<?= $table['capacity'] ?>"
+                        data-active-order="<?= $table['activeOrderCode'] ?>">
+                        <div class="table-card__header"><span class="table-card__number"><?= $table['tableNumber'] ?></span>
                             <div class="table-card__status-dot"></div>
                         </div>
                         <div class="table-card__icon"><i class="bx bx-chair"></i></div>
                         <div class="table-card__info">
-                            <span class="table-card__capacity"><i class="bx bx-user"></i> <?= (int)$table['capacity'] ?> người</span>
-                            <span class="table-card__status-text"><?= h(statusText($status)) ?></span>
+                            <span class="table-card__capacity"><i class="bx bx-user"></i> <?= $table['capacity'] ?> người</span>
+                            <span class="table-card__status-text"><?= $table['statusLabel'] ?></span>
                         </div>
-                        <?php if ($activeOrderCode !== ''): ?>
+                        <?php if ($table['hasActiveOrder']): ?>
                             <div class="table-card__time">
                                 <i class="bx bx-receipt"></i>
-                                <span><?= h($activeOrderCode) ?> · <?= number_format($activeOrderTotal, 0, ',', '.') ?>đ</span>
+                                <span><?= $table['activeOrderInfo'] ?></span>
                             </div>
                         <?php endif; ?>
                         <div class="table-card__actions">
-                            <?php if ($status === 'AVAILABLE'): ?>
-                                <button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(<?= $id ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
-                            <?php elseif ($status === 'RESERVED'): ?>
-                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
-                            <?php elseif ($activeOrderCode !== ''): ?>
-                                <a class="table-card__btn table-card__btn--bill" href="index.php?page=orders&amp;view=<?= urlencode($activeOrderCode) ?>"><i class="bx bx-receipt"></i> Xem / Thanh toán</a>
+                            <?php if ($table['status'] === 'AVAILABLE'): ?>
+                                <button class="table-card__btn table-card__btn--checkin" onclick="changeStatus(<?= $table['id'] ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
+                            <?php elseif ($table['status'] === 'RESERVED'): ?>
+                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $table['id'] ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
+                            <?php elseif ($table['hasActiveOrder']): ?>
+                                <a class="table-card__btn table-card__btn--bill" href="<?= $table['activeOrderHref'] ?>"><i class="bx bx-receipt"></i> Xem / Thanh toán</a>
                             <?php else: ?>
-                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Mở bàn trống</button>
+                                <button class="table-card__btn table-card__btn--restore" onclick="changeStatus(<?= $table['id'] ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Mở bàn trống</button>
                             <?php endif; ?>
-                            <button class="table-card__btn table-card__btn--more" onclick="toggleMenu(<?= $id ?>)"><i class="bx bx-dots-vertical-rounded"></i></button>
+                            <button class="table-card__btn table-card__btn--more" onclick="toggleMenu(<?= $table['id'] ?>)"><i class="bx bx-dots-vertical-rounded"></i></button>
                         </div>
-                        <div class="table-card__menu" id="menu-<?= $id ?>">
-                            <button onclick="editTable(<?= $id ?>)"><i class="bx bx-edit-alt"></i> Chỉnh sửa</button>
-                            <?php if ($status === 'AVAILABLE'): ?>
-                                <button onclick="changeStatus(<?= $id ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
-                            <?php elseif ($status === 'RESERVED'): ?>
-                                <button onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
-                            <?php elseif ($activeOrderCode !== ''): ?>
-                                <button onclick="window.location.href='index.php?page=orders&view=<?= h($activeOrderCode) ?>'"><i class="bx bx-receipt"></i> Xem đơn <?= h($activeOrderCode) ?></button>
+                        <div class="table-card__menu" id="menu-<?= $table['id'] ?>">
+                            <button onclick="editTable(<?= $table['id'] ?>)"><i class="bx bx-edit-alt"></i> Chỉnh sửa</button>
+                            <?php if ($table['status'] === 'AVAILABLE'): ?>
+                                <button onclick="changeStatus(<?= $table['id'] ?>, 'RESERVED')"><i class="bx bx-calendar-check"></i> Đặt trước</button>
+                            <?php elseif ($table['status'] === 'RESERVED'): ?>
+                                <button onclick="changeStatus(<?= $table['id'] ?>, 'AVAILABLE')"><i class="bx bx-x-circle"></i> Hủy đặt</button>
+                            <?php elseif ($table['hasActiveOrder']): ?>
+                                <button onclick="window.location.href='<?= $table['activeOrderJsHref'] ?>'"><i class="bx bx-receipt"></i> Xem đơn <?= $table['activeOrderCode'] ?></button>
                             <?php else: ?>
-                                <button onclick="changeStatus(<?= $id ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Trả về trống</button>
+                                <button onclick="changeStatus(<?= $table['id'] ?>, 'AVAILABLE')"><i class="bx bx-check-circle"></i> Trả về trống</button>
                             <?php endif; ?>
-                            <?php if ($activeOrderCode === ''): ?>
-                                <button class="table-card__menu-danger" onclick="deleteTable(<?= $id ?>)"><i class="bx bx-trash"></i> Xóa bàn</button>
+                            <?php if (!$table['hasActiveOrder']): ?>
+                                <button class="table-card__menu-danger" onclick="deleteTable(<?= $table['id'] ?>)"><i class="bx bx-trash"></i> Xóa bàn</button>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -218,29 +211,22 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php foreach ($tables as $table):
-                        $listTid = (int)$table['tableId'];
-                        $listOrderCode = (string)($table['activeOrderCode'] ?? '');
-                        $listOrderDate = !empty($table['activeOrderDate']) ? date('H:i d/m/Y', strtotime($table['activeOrderDate'])) : '—';
-                        $listOrderInfo = $listOrderCode !== ''
-                            ? $listOrderCode . ' · ' . number_format((float)$table['activeOrderTotal'], 0, ',', '.') . 'đ'
-                            : '—';
-                    ?>
-                        <tr data-id="<?= $listTid ?>">
+                    <?php foreach ($viewTables as $table): ?>
+                        <tr data-id="<?= $table['id'] ?>">
                             <td><input type="checkbox"></td>
-                            <td><strong><?= h($table['tableNumber']) ?></strong></td>
-                            <td><span class="zone-tag"><?= h($table['area']) ?></span></td>
-                            <td><?= (int)$table['capacity'] ?> người</td>
-                            <td><span class="status-badge status-badge--<?= h(statusClass($table['status'])) ?>"><?= h(statusText($table['status'])) ?></span></td>
-                            <td><?= h($listOrderDate) ?></td>
+                            <td><strong><?= $table['tableNumber'] ?></strong></td>
+                            <td><span class="zone-tag"><?= $table['area'] ?></span></td>
+                            <td><?= $table['capacity'] ?> người</td>
+                            <td><span class="status-badge status-badge--<?= $table['statusClass'] ?>"><?= $table['statusLabel'] ?></span></td>
+                            <td><?= $table['activeOrderDate'] ?></td>
                             <td>
-                                <?php if ($listOrderCode !== ''): ?>
-                                    <a href="index.php?page=orders&amp;view=<?= urlencode($listOrderCode) ?>" style="color:var(--primary-400);font-weight:600;"><?= h($listOrderInfo) ?></a>
+                                <?php if ($table['hasActiveOrder']): ?>
+                                    <a href="<?= $table['activeOrderHref'] ?>" style="color:var(--primary-400);font-weight:600;"><?= $table['activeOrderInfo'] ?></a>
                                 <?php else: ?>
                                     —
                                 <?php endif; ?>
                             </td>
-                            <td><button type="button" class="table-card__btn" onclick="editTable(<?= $listTid ?>)">Chỉnh sửa</button></td>
+                            <td><button type="button" class="table-card__btn" onclick="editTable(<?= $table['id'] ?>)">Chỉnh sửa</button></td>
                         </tr>
                     <?php endforeach; ?>
                 </tbody>
@@ -272,7 +258,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
         <div class="reservation-section__title">
             <div class="reservation-section__icon"><i class="bx bx-calendar-event"></i></div>
             <h2>Danh sách lịch hẹn đặt bàn</h2>
-            <span class="reservation-section__count" id="resCountBadge"><?= count($reservations) ?> lịch hẹn</span>
+            <span class="reservation-section__count" id="resCountBadge"><?= $reservationCount ?> lịch hẹn</span>
         </div>
     </div>
 
@@ -293,7 +279,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <?php if (empty($reservations)): ?>
+                    <?php if (empty($viewReservations)): ?>
                         <tr>
                             <td colspan="9" class="res-empty-state">
                                 <i class="bx bx-calendar-x"></i>
@@ -301,48 +287,47 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                         </tr>
                     <?php else: ?>
-                        <?php foreach ($reservations as $res):
-                            $resId = (int)$res['reservationId'];
-                            $resStatus = strtoupper(trim((string)$res['status']));
-                            $formattedDate = !empty($res['reservationDate']) ? date('d/m/Y', strtotime($res['reservationDate'])) : '—';
-                            $formattedTime = !empty($res['reservationTime']) ? date('H:i', strtotime($res['reservationTime'])) : '—';
-                        ?>
-                            <tr id="res-row-<?= $resId ?>">
-                                <td><strong>#<?= $resId ?></strong></td>
+                        <?php foreach ($viewReservations as $res): ?>
+                            <tr id="res-row-<?= $res['id'] ?>">
+                                <td><strong>#<?= $res['id'] ?></strong></td>
                                 <td>
-                                    <div class="res-customer__name"><?= h($res['guestName']) ?></div>
-                                    <?php if (!empty($res['guestEmail'])): ?>
-                                        <div class="res-customer__email"><?= h($res['guestEmail']) ?></div>
+                                    <div class="res-customer__name"><?= $res['guestName'] ?></div>
+                                    <?php if ($res['guestEmail'] !== ''): ?>
+                                        <div class="res-customer__email"><?= $res['guestEmail'] ?></div>
                                     <?php endif; ?>
                                 </td>
-                                <td><?= h($res['guestPhone']) ?></td>
+                                <td><?= $res['guestPhone'] ?></td>
                                 <td>
-                                    <div class="res-datetime__date"><i class="bx bx-calendar"></i> <?= $formattedDate ?></div>
-                                    <div class="res-datetime__time"><i class="bx bx-time"></i> <?= $formattedTime ?></div>
+                                    <div class="res-datetime__date"><i class="bx bx-calendar"></i> <?= $res['formattedDate'] ?></div>
+                                    <div class="res-datetime__time"><i class="bx bx-time"></i> <?= $res['formattedTime'] ?></div>
                                 </td>
-                                <td><?= (int)$res['guestCount'] ?> khách</td>
-                                <td><?= h($res['branch'] ?: '—') ?></td>
+                                <td><?= $res['guestCount'] ?> khách</td>
+                                <td><?= $res['branch'] ?></td>
                                 <td class="res-note-cell">
-                                    <?= !empty($res['note']) ? h($res['note']) : '<span class="text-muted-action">—</span>' ?>
+                                    <?php if ($res['note'] !== ''): ?>
+                                        <?= $res['note'] ?>
+                                    <?php else: ?>
+                                        <span class="text-muted-action">—</span>
+                                    <?php endif; ?>
                                 </td>
                                 <td>
-                                    <span class="status-badge status-badge--<?= resStatusClass($resStatus) ?>" id="res-badge-<?= $resId ?>">
-                                        <?= h(resStatusText($resStatus)) ?>
+                                    <span class="status-badge status-badge--<?= $res['statusClass'] ?>" id="res-badge-<?= $res['id'] ?>">
+                                        <?= $res['statusLabel'] ?>
                                     </span>
                                 </td>
-                                <td class="td-action" id="res-action-<?= $resId ?>">
-                                    <?php if ($resStatus === 'PENDING'): ?>
+                                <td class="td-action" id="res-action-<?= $res['id'] ?>">
+                                    <?php if ($res['statusUpper'] === 'PENDING'): ?>
                                         <div class="reservation-actions">
-                                            <button type="button" class="btn-confirm-reservation" onclick="confirmReservation(<?= $resId ?>)" title="Xác nhận lịch hẹn #<?= $resId ?>">
+                                            <button type="button" class="btn-confirm-reservation" onclick="confirmReservation(<?= $res['id'] ?>)" title="Xác nhận lịch hẹn #<?= $res['id'] ?>">
                                                 <i class="bx bx-check-circle"></i> Xác nhận
                                             </button>
-                                            <button type="button" class="btn-cancel-reservation" onclick="cancelReservation(<?= $resId ?>)" title="Hủy lịch hẹn #<?= $resId ?>">
+                                            <button type="button" class="btn-cancel-reservation" onclick="cancelReservation(<?= $res['id'] ?>)" title="Hủy lịch hẹn #<?= $res['id'] ?>">
                                                 <i class="bx bx-x-circle"></i> Hủy lịch
                                             </button>
                                         </div>
-                                    <?php elseif ($resStatus === 'CONFIRMED'): ?>
+                                    <?php elseif ($res['statusUpper'] === 'CONFIRMED'): ?>
                                         <div class="reservation-actions">
-                                            <button type="button" class="btn-cancel-reservation" onclick="cancelReservation(<?= $resId ?>)" title="Hủy lịch hẹn #<?= $resId ?>">
+                                            <button type="button" class="btn-cancel-reservation" onclick="cancelReservation(<?= $res['id'] ?>)" title="Hủy lịch hẹn #<?= $res['id'] ?>">
                                                 <i class="bx bx-x-circle"></i> Hủy lịch
                                             </button>
                                         </div>
@@ -394,8 +379,8 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             <i class="bx bx-map"></i>
                             <select class="modal-form__input" id="inputZone" required>
                                 <option value="">Chọn khu vực</option>
-                                <?php foreach (array_unique(array_merge(array_keys($areaMap), array_keys($areaGroups))) as $areaOption): ?>
-                                    <option value="<?= h($areaOption) ?>"><?= h($areaOption) ?></option>
+                                <?php foreach ($modalAreaOptions as $areaOption): ?>
+                                    <option value="<?= $areaOption ?>"><?= $areaOption ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>

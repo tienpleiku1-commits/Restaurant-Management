@@ -2,51 +2,116 @@
 require_once __DIR__ . '/function.php';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
     header('Content-Type: application/json; charset=utf-8');
 
     $action = $_POST['action'] ?? '';
-    $id = (int)($_POST['id'] ?? 0);
-    $success = false;
-    $message = 'Thao tác không thành công.';
-    $errorMsg = '';
+    $id     = (int)($_POST['id'] ?? 0);
+    $result = ['success' => false, 'message' => 'Thao tác không hợp lệ.'];
 
     if ($action === 'save_table') {
-
-        $success = table_save($conn, $_POST, $id, $errorMsg);
-        $message = $success ? 'Đã lưu bàn.' : ($errorMsg ?: 'Không thể lưu bàn.');
+        $result = table_save($conn, $_POST, $id);
     } elseif ($action === 'update_status') {
-
-        $success = table_update_status($conn, $id, $_POST['status'] ?? '', $errorMsg);
-        $message = $success ? 'Đã cập nhật trạng thái bàn.' : ($errorMsg ?: 'Trạng thái không hợp lệ.');
+        $result = table_update_status($conn, $id, $_POST['status'] ?? '');
     } elseif ($action === 'confirm_reservation') {
-
-        $success = table_update_reservation($conn, $id, 'CONFIRMED');
-        $message = $success ? 'Đã xác nhận đặt bàn.' : $message;
+        $result = table_update_reservation($conn, $id, 'CONFIRMED');
     } elseif ($action === 'cancel_reservation') {
-
-        $success = table_update_reservation($conn, $id, 'CANCELLED');
-        $message = $success ? 'Đã hủy đặt bàn.' : $message;
+        $result = table_update_reservation($conn, $id, 'CANCELLED');
     } elseif ($action === 'delete_table') {
-
-        $success = table_delete($conn, $id, $errorMsg);
-        $message = $success ? 'Đã xóa bàn.' : ($errorMsg ?: $message);
-    } else {
-
-        $message = 'Thao tác không hợp lệ.';
+        $result = table_delete($conn, $id);
     }
 
-    echo json_encode([
-        'success' => $success,
-        'message' => $message
-    ], JSON_UNESCAPED_UNICODE);
-
+    echo json_encode($result, JSON_UNESCAPED_UNICODE);
     exit;
 }
 
-$tables       = table_get_all($conn);
-$reservations = table_get_reservations($conn);
-$totalTables  = count($tables);
-$statusCounts = table_count_statuses($tables);
-$areaMap      = table_get_area_map();
-$areaGroups   = table_group_by_area($tables);
+// Dữ liệu hiển thị cho giao diện (escape & format sẵn để HTML không gọi hàm)
+$esc = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+
+$rawTables       = table_get_all($conn);
+$rawReservations = table_get_reservations($conn);
+
+$totalTables  = count($rawTables);
+$statusCounts = ['AVAILABLE' => 0, 'OCCUPIED' => 0, 'RESERVED' => 0];
+$areaMap      = [
+    'Trong nhà'   => ['slug' => 'tang1-trong', 'label' => 'Tầng 1 - Trong nhà', 'icon' => 'bx-building-house'],
+    'Ngoài trời'  => ['slug' => 'tang1-ngoai', 'label' => 'Tầng 1 - Ngoài trời', 'icon' => 'bx-sun'],
+    'VIP'         => ['slug' => 'tang2-vip',   'label' => 'Tầng 2 - VIP', 'icon' => 'bx-crown'],
+    'Phòng riêng' => ['slug' => 'tang2-rieng', 'label' => 'Tầng 2 - Phòng riêng', 'icon' => 'bx-door-open'],
+];
+
+$tablesByArea = [];
+$viewTables   = [];
+
+foreach ($rawTables as $row) {
+    $st = $row['status'];
+    if (isset($statusCounts[$st])) {
+        $statusCounts[$st]++;
+    }
+
+    $areaName       = $row['area'] ?: 'Chưa phân khu';
+    $areaInfo       = $areaMap[$areaName] ?? ['slug' => 'khac', 'label' => $areaName, 'icon' => 'bx-map'];
+    $orderCode      = (string)($row['activeOrderCode'] ?? '');
+    $hasActiveOrder = ($orderCode !== '');
+    $orderTotalFmt  = number_format((float)($row['activeOrderTotal'] ?? 0), 0, ',', '.') . 'đ';
+    $orderDateFmt   = !empty($row['activeOrderDate']) ? date('H:i d/m/Y', strtotime($row['activeOrderDate'])) : '—';
+
+    $item = [
+        'id'                 => (int)$row['tableId'],
+        'tableNumber'        => $esc($row['tableNumber']),
+        'area'               => $esc($row['area']),
+        'capacity'           => (int)$row['capacity'],
+        'status'             => $st,
+        'statusClass'        => $esc($row['statusClass']),
+        'statusLabel'        => $esc($row['statusLabel']),
+        'zone'               => $esc($areaInfo['slug']),
+        'hasActiveOrder'     => $hasActiveOrder,
+        'activeOrderCode'    => $esc($orderCode),
+        'activeOrderInfo'    => $hasActiveOrder ? $esc($orderCode . ' · ' . $orderTotalFmt) : '—',
+        'activeOrderDate'    => $esc($orderDateFmt),
+        'activeOrderHref'    => $hasActiveOrder ? 'index.php?page=orders&amp;view=' . urlencode($orderCode) : '',
+        'activeOrderJsHref'  => $hasActiveOrder ? 'index.php?page=orders&view=' . urlencode($orderCode) : '',
+    ];
+
+    $viewTables[]             = $item;
+    $tablesByArea[$areaName][] = $item;
+}
+
+$viewAreaGroups    = [];
+$filterAreaOptions = [];
+foreach ($tablesByArea as $areaName => $groupTables) {
+    $areaInfo = $areaMap[$areaName] ?? ['slug' => 'khac', 'label' => $areaName, 'icon' => 'bx-map'];
+    $viewAreaGroups[] = [
+        'icon'   => $esc($areaInfo['icon']),
+        'label'  => $esc($areaInfo['label']),
+        'count'  => count($groupTables),
+        'tables' => $groupTables,
+    ];
+    $filterAreaOptions[] = [
+        'slug'  => $esc($areaInfo['slug']),
+        'label' => $esc($areaInfo['label']),
+    ];
+}
+
+$modalAreaOptions = [];
+foreach (array_unique(array_merge(array_keys($areaMap), array_keys($tablesByArea))) as $areaName) {
+    $modalAreaOptions[] = $esc($areaName);
+}
+
+$viewReservations = [];
+foreach ($rawReservations as $res) {
+    $viewReservations[] = [
+        'id'            => (int)$res['reservationId'],
+        'guestName'     => $esc($res['guestName']),
+        'guestEmail'    => $esc($res['guestEmail'] ?? ''),
+        'guestPhone'    => $esc($res['guestPhone']),
+        'formattedDate' => $esc($res['formattedDate']),
+        'formattedTime' => $esc($res['formattedTime']),
+        'guestCount'    => (int)$res['guestCount'],
+        'branch'        => $esc($res['branch'] ?: '—'),
+        'note'          => $esc($res['note'] ?? ''),
+        'statusUpper'   => $res['statusUpper'],
+        'statusClass'   => $esc($res['statusClass']),
+        'statusLabel'   => $esc($res['statusLabel']),
+    ];
+}
+$reservationCount = count($viewReservations);
