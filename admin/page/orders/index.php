@@ -16,7 +16,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
             <i class="bx bx-receipt"></i> Quản lý đơn hàng
         </h1>
         <p class="page-title__desc">
-            Theo dõi danh sách hóa đơn, gọi món tại bàn, mang về và trạng thái thanh toán thời gian thực.
+            Theo dõi danh sách hóa đơn, gọi món tại bàn và trạng thái thanh toán thời gian thực.
         </p>
     </div>
     <div class="page-title__actions">
@@ -127,12 +127,6 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 <input type="text" name="search" value="<?= htmlspecialchars($searchKw) ?>" placeholder="Tìm mã đơn, tên khách, SĐT, số bàn..." />
             </div>
 
-            <select class="toolbar-select" name="type" onchange="this.form.submit()">
-                <option value="all">Tất cả hình thức</option>
-                <option value="dinein" <?= $orderType === 'dinein' ? 'selected' : '' ?>>Ăn tại bàn</option>
-                <option value="takeaway" <?= $orderType === 'takeaway' ? 'selected' : '' ?>>Mang về</option>
-            </select>
-
             <select class="toolbar-select" name="payment" onchange="this.form.submit()">
                 <option value="all">Tất cả thanh toán</option>
                 <option value="cash" <?= $paymentFilter === 'cash' ? 'selected' : '' ?>>Tiền mặt</option>
@@ -148,7 +142,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                 <option value="month" <?= $dateFilter === 'month' ? 'selected' : '' ?>>Tháng này</option>
             </select>
             <button type="submit" class="btn btn--secondary btn--sm">Lọc</button>
-            <?php if (!empty($searchKw) || $orderType !== 'all' || $paymentFilter !== 'all' || $dateFilter !== 'all'): ?>
+            <?php if (!empty($searchKw) || $paymentFilter !== 'all' || $dateFilter !== 'all'): ?>
                 <a href="index.php?page=orders<?= $statusFilter !== 'all' ? '&amp;status=' . urlencode($statusFilter) : '' ?>" class="btn btn--ghost btn--sm">Bỏ lọc</a>
             <?php endif; ?>
         </div>
@@ -169,7 +163,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                         <input type="checkbox" id="checkAllOrders" />
                     </th>
                     <th>MÃ ĐƠN</th>
-                    <th>BÀN / HÌNH THỨC</th>
+                    <th>BÀN</th>
                     <th>KHÁCH HÀNG</th>
                     <th>MÓN ĂN GỌI</th>
                     <th>TỔNG TIỀN</th>
@@ -205,7 +199,7 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                             </td>
                             <td>
                                 <strong><?= htmlspecialchars($o['table']) ?></strong><br>
-                                <small style="color:#666;"><?= htmlspecialchars($o['typeName']) ?> (<?= (int)$o['guests'] ?> khách)</small>
+                                <small style="color:#666;"><?= (int)$o['guests'] ?> khách</small>
                             </td>
                             <td>
                                 <strong><?= htmlspecialchars($o['customer']) ?></strong>
@@ -628,31 +622,21 @@ include_once __DIR__ . '/../../../layouts/admin_header.php';
                                 </div>
                             </div>
 
-                            <!-- 2. Hình thức & Bàn (luôn hiển thị, zero-JS) -->
-                            <div class="pos-form-row pos-form-row--even">
-                                <div class="form-group">
-                                    <label for="posOrderType">Hình thức gọi món <span>*</span></label>
-                                    <select class="form-control" name="orderType" id="posOrderType">
-                                        <option value="dinein" <?= $createForm['orderType'] === 'dinein' ? 'selected' : '' ?>>Ăn tại bàn</option>
-                                        <option value="takeaway" <?= $createForm['orderType'] === 'takeaway' ? 'selected' : '' ?>>Mang về</option>
-                                    </select>
-                                </div>
-
-                                <div class="form-group" id="posTableSelectGroup">
-                                    <label for="posTableSelect">Chọn bàn (chỉ dùng khi Ăn tại bàn)</label>
-                                    <select class="form-control" name="tableId" id="posTableSelect">
-                                        <?php if (empty($availableTables)): ?>
-                                            <option value="">-- Không còn bàn trống --</option>
-                                        <?php else: ?>
-                                            <option value="">-- Chọn bàn trống --</option>
-                                            <?php foreach ($availableTables as $tbl): ?>
-                                                <option value="<?= (int)$tbl['tableId'] ?>" <?= (int)$createForm['tableId'] === (int)$tbl['tableId'] ? 'selected' : '' ?>>
-                                                    Bàn <?= htmlspecialchars($tbl['tableNumber']) ?> (<?= htmlspecialchars($tbl['area']) ?> · <?= (int)$tbl['capacity'] ?> chỗ)
-                                                </option>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </select>
-                                </div>
+                            <!-- 2. Chọn bàn (luôn hiển thị, zero-JS) -->
+                            <div class="form-group" id="posTableSelectGroup">
+                                <label for="posTableSelect">Chọn bàn <span>*</span></label>
+                                <select class="form-control" name="tableId" id="posTableSelect">
+                                    <?php if (empty($availableTables)): ?>
+                                        <option value="">-- Không còn bàn trống --</option>
+                                    <?php else: ?>
+                                        <option value="">-- Chọn bàn trống --</option>
+                                        <?php foreach ($availableTables as $tbl): ?>
+                                            <option value="<?= (int)$tbl['tableId'] ?>" <?= (int)$createForm['tableId'] === (int)$tbl['tableId'] ? 'selected' : '' ?>>
+                                                Bàn <?= htmlspecialchars($tbl['tableNumber']) ?> (<?= htmlspecialchars($tbl['area']) ?> · <?= (int)$tbl['capacity'] ?> chỗ)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
                             </div>
 
                             <!-- 3. Tra cứu khách hàng theo SĐT -->

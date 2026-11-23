@@ -97,10 +97,9 @@ foreach ($allOrders as $o) {
 // -------------------------------------------------------------
 $statusFilter = $_GET['status'] ?? 'cooking';
 $searchKw     = trim((string)($_GET['search'] ?? ''));
-$orderType    = $_GET['type'] ?? 'all';
 $dateFilter   = $_GET['period'] ?? 'all';
 
-$filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $searchKw, $orderType, $dateFilter) {
+$filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $searchKw, $dateFilter) {
     if ($statusFilter !== 'all' && $o['status'] !== $statusFilter) {
         return false;
     }
@@ -109,9 +108,6 @@ $filteredOrders = array_filter($allOrders, function ($o) use ($statusFilter, $se
         if (strpos($haystack, strtolower($searchKw)) === false) {
             return false;
         }
-    }
-    if ($orderType !== 'all' && $o['type'] !== $orderType) {
-        return false;
     }
     if ($dateFilter !== 'all' && $o['period'] !== $dateFilter) {
         return false;
@@ -130,7 +126,6 @@ $ordersList    = array_slice($filteredOrders, ($currentPage - 1) * $limit, $limi
 
 $listQueryParams = ['page' => 'orders', 'status' => $statusFilter];
 if ($searchKw !== '') $listQueryParams['search'] = $searchKw;
-if ($orderType !== 'all') $listQueryParams['type'] = $orderType;
 if ($dateFilter !== 'all') $listQueryParams['period'] = $dateFilter;
 if ($currentPage > 1) $listQueryParams['p'] = $currentPage;
 $currentListUrl = 'index.php?' . http_build_query($listQueryParams);
