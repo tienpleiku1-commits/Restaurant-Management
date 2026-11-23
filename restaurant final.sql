@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Máy chủ: localhost
--- Thời gian đã tạo: Th10 22, 2026 lúc 03:03 PM
+-- Thời gian đã tạo: Th10 23, 2026 lúc 02:47 PM
 -- Phiên bản máy phục vụ: 10.4.28-MariaDB
 -- Phiên bản PHP: 8.2.4
 
@@ -104,13 +104,13 @@ CREATE TABLE `customer` (
 --
 
 INSERT INTO `customer` (`customerId`, `customerName`, `customerPhone`, `customerEmail`, `passwordHash`, `birthDate`, `gender`, `address`, `visitCount`, `isDeleted`, `createdAt`) VALUES
-(1, 'Nguyễn Hữu An', '0931111111', 'an.nguyen@gmail.com', '32250170a0dca92d53ec9624f336ca24', '1995-05-15', 'MALE', '123 Lê Lợi, Q1, TP.HCM', 5, 0, '2026-10-24 13:09:25'),
-(2, 'Lê Thị Hương Giang', '0932222222', 'giang.le@gmail.com', '32250170a0dca92d53ec9624f336ca24', '1998-10-20', 'FEMALE', '456 Hai Bà Trưng, Q3, TP.HCM', 2, 0, '2026-10-24 13:09:25'),
-(3, 'Trần Quốc Bảo', '0933333333', 'bao.tran@gmail.com', '32250170a0dca92d53ec9624f336ca24', '1990-12-01', 'MALE', '789 Nguyễn Văn Cừ, Q5, TP.HCM', 10, 0, '2026-10-24 13:09:25'),
-(4, 'Phạm Thị Ngọc Linh', '0934444444', 'linh.pham@gmail.com', '32250170a0dca92d53ec9624f336ca24', '2000-02-14', 'FEMALE', '101 Võ Văn Tần, Q3, TP.HCM', 1, 0, '2026-10-24 13:09:25'),
-(5, 'Hoàng Minh Tuấn', '0935555555', 'tuan.hoang@gmail.com', '32250170a0dca92d53ec9624f336ca24', '1988-08-08', 'MALE', '202 Trần Hưng Đạo, Q1, TP.HCM', 3, 0, '2026-10-24 13:09:25'),
-(6, 'ho thong', '0945331086', 'qwewqeweq@gfd.com', '$2y$10$4OJPuLGpl5NmLnshiPAhCOfZx9cv14GXsvnpHpylUeLZUjKKzIlwS', '2010-07-08', 'MALE', NULL, 0, 0, '2026-10-24 13:23:52'),
-(7, 'asdfaf', '0987654321', 'sadasd@fdsf.afs', '$2y$10$N9I5ZBwjNF5Tnh0cS6m8duHqGWIXwC5nKl94PEUNFNyjx8EdZS0z.', '2026-10-02', 'MALE', NULL, 0, 0, '2026-10-30 09:18:49');
+(1, 'Nguyễn Hữu An', '0931111111', 'an.nguyen@gmail.com', '$2y$10$0tV9avNaN5HW.YNqQXPD4eKjb432IR8oujVurP262saDl.j8q/BnG', '1995-05-15', 'MALE', '123 Lê Lợi, Q1, TP.HCM', 5, 0, '2026-10-24 13:09:25'),
+(2, 'Lê Thị Hương Giang', '0932222222', 'giang.le@gmail.com', '$2y$10$g37ZZY.t6t/wRK5ek/rHdeo1hVq8bbx1HAB9pFlXfG7DevDj6k68i', '1998-10-20', 'FEMALE', '456 Hai Bà Trưng, Q3, TP.HCM', 2, 0, '2026-10-24 13:09:25'),
+(3, 'Trần Quốc Bảo', '0933333333', 'bao.tran@gmail.com', '$2y$10$8xYRUgi3GqGWSgFnzhIVtO.74bcKQAs1I31yx7SMelqx6CygizEgu', '1990-12-01', 'MALE', '789 Nguyễn Văn Cừ, Q5, TP.HCM', 10, 0, '2026-10-24 13:09:25'),
+(4, 'Phạm Thị Ngọc Linh', '0934444444', 'linh.pham@gmail.com', '$2y$10$P6hhx1zvdcOTRmd3kfg9C.0aUIMCwWr8B8toKh3PDH2n4B3n79/aC', '2000-02-14', 'FEMALE', '101 Võ Văn Tần, Q3, TP.HCM', 1, 0, '2026-10-24 13:09:25'),
+(5, 'Hoàng Minh Tuấn', '0935555555', 'tuan.hoang@gmail.com', '$2y$10$2kNLn9ny4xmlLJ5e5iC8Heqq0gtsKWoaf2cTdBXRETZF7d82Rrygq', '1988-08-08', 'MALE', '202 Trần Hưng Đạo, Q1, TP.HCM', 3, 0, '2026-10-24 13:09:25'),
+(6, 'ho thong', '0945331086', 'qwewqeweq@gfd.com', '$2y$10$Asw6pJtKNo4ED1KCYd4JbeCvWSuvc/xvORp05wbyx2WqyNnwT/k8i', '2010-07-08', 'MALE', NULL, 0, 0, '2026-10-24 13:23:52'),
+(7, 'asdfaf', '0987654321', 'sadasd@fdsf.afs', '$2y$10$E7sUMuMFXypIbPJfo1D2ku0PwZQbNM7zpotk/p/pyMMWWgc/YU0JW', '2026-10-02', 'MALE', NULL, 0, 0, '2026-10-30 09:18:49');
 
 -- --------------------------------------------------------
 
@@ -335,7 +335,8 @@ INSERT INTO `orders` (`orderId`, `customerId`, `adminId`, `tableId`, `voucherId`
 (29, NULL, NULL, 1, NULL, 2, 105000, 0, 105000, 'CASH', 'CANCELLED', '2026-11-17 14:54:49', NULL, '2026-11-17 14:54:49'),
 (30, 1, 1, 10, 4, 2, 210000, 31500, 178500, 'CASH', 'PENDING_PAY', '2026-11-21 21:01:57', '2026-11-21 21:04:31', '2026-11-21 21:01:57'),
 (31, NULL, 1, 1, NULL, 2, 300000, 0, 300000, 'CASH', 'PENDING_PAY', '2026-11-21 21:33:53', NULL, '2026-11-21 21:33:53'),
-(154, NULL, 10, 2, NULL, 2, 390000, 0, 390000, 'CASH', 'COOKING', '2026-11-22 20:48:10', NULL, '2026-11-22 20:48:10');
+(154, NULL, 10, 2, NULL, 2, 390000, 0, 390000, 'CASH', 'PAID', '2026-11-22 20:48:10', '2026-11-23 09:55:45', '2026-11-22 20:48:10'),
+(155, 1, 1, 4, NULL, 2, 1070000, 0, 1070000, 'CARD', 'COOKING', '2026-11-23 14:04:28', NULL, '2026-11-23 14:04:28');
 
 -- --------------------------------------------------------
 
@@ -414,8 +415,12 @@ INSERT INTO `order_items` (`orderItemId`, `orderId`, `foodId`, `quantity`, `unit
 (55, 29, 11, 1, 30000, 30000, 'CANCELLED', '2026-11-17 14:54:49'),
 (56, 30, 8, 3, 70000, 210000, 'SERVED', '2026-11-21 21:01:57'),
 (57, 31, 9, 4, 75000, 300000, 'SERVED', '2026-11-21 21:33:53'),
-(216, 154, 7, 1, 250000, 250000, 'ORDERED', '2026-11-22 20:48:10'),
-(217, 154, 8, 2, 70000, 140000, 'ORDERED', '2026-11-22 20:48:10');
+(216, 154, 7, 1, 250000, 250000, 'SERVED', '2026-11-22 20:48:10'),
+(217, 154, 8, 2, 70000, 140000, 'SERVED', '2026-11-22 20:48:10'),
+(218, 155, 7, 2, 250000, 500000, 'ORDERED', '2026-11-23 14:04:28'),
+(219, 155, 8, 4, 70000, 280000, 'ORDERED', '2026-11-23 14:04:28'),
+(220, 155, 9, 3, 75000, 225000, 'ORDERED', '2026-11-23 14:04:28'),
+(221, 155, 10, 1, 65000, 65000, 'ORDERED', '2026-11-23 14:04:28');
 
 -- --------------------------------------------------------
 
@@ -507,9 +512,9 @@ CREATE TABLE `service_table` (
 
 INSERT INTO `service_table` (`tableId`, `tableNumber`, `area`, `capacity`, `status`, `isDeleted`, `createdAt`) VALUES
 (1, 'T01', 'Trong nhà', 4, 'OCCUPIED', 0, '2026-10-24 13:09:25'),
-(2, 'T02', 'Trong nhà', 4, 'OCCUPIED', 0, '2026-10-24 13:09:25'),
-(3, 'T03', 'Trong nhà', 6, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
-(4, 'T04', 'Trong nhà', 4, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(2, 'T02', 'Trong nhà', 4, 'AVAILABLE', 0, '2026-10-24 13:09:25'),
+(3, 'T03', 'Trong nhà', 6, 'RESERVED', 0, '2026-10-24 13:09:25'),
+(4, 'T04', 'Trong nhà', 4, 'OCCUPIED', 0, '2026-10-24 13:09:25'),
 (5, 'T05', 'Trong nhà', 2, 'RESERVED', 0, '2026-10-24 13:09:25'),
 (6, 'T06', 'Ngoài trời', 6, 'RESERVED', 0, '2026-10-24 13:09:25'),
 (7, 'T07', 'Ngoài trời', 4, 'RESERVED', 0, '2026-10-24 13:09:25'),
@@ -700,13 +705,13 @@ ALTER TABLE `inventory_log`
 -- AUTO_INCREMENT cho bảng `orders`
 --
 ALTER TABLE `orders`
-  MODIFY `orderId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=155;
+  MODIFY `orderId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=156;
 
 --
 -- AUTO_INCREMENT cho bảng `order_items`
 --
 ALTER TABLE `order_items`
-  MODIFY `orderItemId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=218;
+  MODIFY `orderItemId` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=222;
 
 --
 -- AUTO_INCREMENT cho bảng `promotion`
