@@ -20,7 +20,22 @@ function menu_get_foods_by_category($conn)
     $grouped = [];
     if ($result) {
         foreach ($result->fetch_all(MYSQLI_ASSOC) as $food) {
-            $grouped[(int)$food['categoryId']][] = $food;
+            $categoryId = (int)$food['categoryId'];
+            $foodName = mb_strtolower(trim($food['foodName']), 'UTF-8');
+
+            // Không hiển thị món bị gán nhầm danh mục ở giao diện khách hàng.
+            if (($categoryId === 3 && $foodName === mb_strtolower('Bia Heineken', 'UTF-8')) ||
+                ($categoryId === 4 && $foodName === mb_strtolower('Lẩu Lòng Bò Sa Tế Cay', 'UTF-8'))
+            ) {
+                continue;
+            }
+
+            $grouped[$categoryId][] = $food;
+        }
+
+        // Mỗi danh mục chỉ hiển thị tối đa 3 món trên trang thực đơn.
+        foreach ($grouped as $categoryId => $foods) {
+            $grouped[$categoryId] = array_slice($foods, 0, 3);
         }
     }
     return $grouped;
